@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Maps Demo</title>
+    <style>
+        #map {
+            width: 1000px;
+            height: 700px;
+            border: 1px solid #ccc;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="src/karta.css">
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="src/karta.js"></script>
+    <script>
+        const map = new KartaJS('map', {
+            center: [55.7558, 37.6173],
+            zoom: 12
+        });
+
+        // Добавляем метки
+        map.addMarker({
+            lat: 55.7558,
+            lng: 37.6173,
+            title: 'Москва',
+            color: '#ff4444',
+            popup: 'Столица России'
+        });
+
+        map.addMarker({
+            lat: 0,
+            lng: 0,
+            title: '0',
+            color: '#44ff44'
+        });
+
+        map.addMarker({
+            lat: 60,
+            lng: 30,
+            title: 'Piter',
+            color: '#44ff44'
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+.idea/
+vendor/
+.DS_Store
+Thumbs.db
+desktop.ini
+.sass-cache
+composer.lock
+.php_cs.cache
+.phpstorm.meta.php
+.vscode
+*.log
