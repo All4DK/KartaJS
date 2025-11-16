@@ -1,0 +1,2 @@
+# KartaJS
+Minimalistic maps library
