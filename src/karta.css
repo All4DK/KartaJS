@@ -80,3 +80,26 @@
     pointer-events: auto;
 }
 /*  //MARKERS */
+
+.kjs-popup-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(3,3,3, 0.5);
+    display: none;
+    place-items: center; /
+    pointer-events: auto;
+}
+
+.kjs-popup-container .kjs-popup{
+    /*position: absolute;*/
+    margin: auto;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 200px;
+    background-color: #fff;
+    border: 2px solid #ddd;
+}

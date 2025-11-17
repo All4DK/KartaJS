@@ -46,9 +46,15 @@ class KartaJS {
         if (this.options.showLatlngMonitor) {
             this.container.innerHTML += '<div class="kjs-current-latlng">N:0.00 E:0.00</div>';
         }
+        this.container.innerHTML += '' +
+            '<div class="kjs-popup-container" onclick="this.style.display=\'none\'">' +
+            '   <div class="kjs-popup"></div>' +
+            '</div>';
 
         this.tilesContainer = this.container.querySelector('.kjs-tiles-container');
         this.markersContainer = this.container.querySelector('.kjs-markers-container');
+        this.popupContainer = this.container.querySelector('.kjs-popup-container');
+        this.popup = this.container.querySelector('.kjs-popup');
         this.currentLatlng = this.container.querySelector('.kjs-current-latlng');
         this.zoomInBtn = this.container.querySelector('.kjs-zoom-in');
         this.zoomOutBtn = this.container.querySelector('.kjs-zoom-out');
@@ -480,7 +486,8 @@ class SimpleMarker {
 
     showPopup() {
         // Реализация попапа
-        console.log('Show popup:', this.popup);
+        this.map.popup.innerHTML = this.popup;
+        this.map.popupContainer.style.display = 'grid';
     }
 
     remove() {
