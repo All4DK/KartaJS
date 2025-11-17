@@ -19,6 +19,18 @@
     cursor: grab;
 }
 
+.kjs-current-latlng {
+    position: absolute;
+    bottom: 0px;
+    left: 10px;
+    pointer-events: auto;
+    display: block;
+    background-color: rgba(256, 256, 256, 0.7);
+    padding: 2px 5px;
+    font-size: 10px;
+    color: #333;
+}
+
 .kjs-copyrighths {
     position: absolute;
     bottom: 0px;
@@ -62,8 +74,9 @@
     height: 20px;
     border: 2px solid white;
     border-radius: 50%;
-    cursor: pointer;
+    cursor: grab;
     transform: translate(-50%, -50%);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: auto;
 }
 /*  //MARKERS */

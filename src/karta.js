@@ -10,7 +10,8 @@ class KartaJS {
                 url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 attribution: '© OpenStreetMap',
                 subdomains: ['a', 'b', 'c']
-            }
+            },
+            showLatlngMonitor: (typeof options.showLatlngMonitor !== 'undefined') && options.showLatlngMonitor
         };
 
         this.tileSize = 256;
@@ -42,8 +43,13 @@ class KartaJS {
             </div>
             <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + `| KartaJS</div>`;
 
+        if (this.options.showLatlngMonitor) {
+            this.container.innerHTML += '<div class="kjs-current-latlng">N:0.00 E:0.00</div>';
+        }
+
         this.tilesContainer = this.container.querySelector('.kjs-tiles-container');
         this.markersContainer = this.container.querySelector('.kjs-markers-container');
+        this.currentLatlng = this.container.querySelector('.kjs-current-latlng');
         this.zoomInBtn = this.container.querySelector('.kjs-zoom-in');
         this.zoomOutBtn = this.container.querySelector('.kjs-zoom-out');
     }
@@ -169,6 +175,15 @@ class KartaJS {
             clientY - this.currentOffset.y,
             this.options.zoom
         );
+
+        if (this.options.showLatlngMonitor) {
+            this.currentLatlng.innerHTML =
+                ((coords.lat > 0) ? 'N:' : 'S:')
+                + Math.abs(coords.lat.toFixed(4))
+                + ' '
+                + ((coords.lng > 0) ? 'E:' : 'W:')
+                + Math.abs(coords.lng.toFixed(4));
+        }
 
         if (!this.isDragging) {
             this.lastMousePos.lat = coords.lat;
