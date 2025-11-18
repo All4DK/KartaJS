@@ -128,18 +128,19 @@ class KartaJS {
             .replace('{x}', x)
             .replace('{y}', y) : '';
 
-        img.src = url;
-        img.onload = () => {
-            tile.style.backgroundImage = `url(${url})`;
-            tile.style.backgroundSize = 'cover';
-        };
-
-
-        img.onerror = () => {
-            console.warn('Failed to load tile:', url);
-            tile.style.backgroundColor = '#f0f0f0';
-            tile.style.border = '1px solid #ddd';
-        };
+        tile.style.backgroundColor = '#f0f0f0';
+        tile.style.border = '1px solid #ddd';
+        if (url) {
+            img.src = url;
+            img.onload = () => {
+                tile.style.border = '';
+                tile.style.backgroundImage = `url(${url})`;
+                tile.style.backgroundSize = 'cover';
+            };
+            img.onerror = () => {
+                console.warn('Failed to load tile:', url);
+            };
+        }
 
         this.tilesContainer.appendChild(tile);
         this.tiles.set(tileKey, tile);
@@ -237,10 +238,8 @@ class KartaJS {
     onTouchStart(e) {
         if (e.touches.length === 1) {
             this.isDragging = true;
-            this.lastMousePos = {
-                x: e.touches[0].clientX,
-                y: e.touches[0].clientY
-            };
+            this.lastMousePos.x = e.touches[0].clientX;
+            this.lastMousePos.y = e.touches[0].clientY;
         }
     }
 
@@ -250,10 +249,8 @@ class KartaJS {
         const deltaX = e.touches[0].clientX - this.lastMousePos.x;
         const deltaY = e.touches[0].clientY - this.lastMousePos.y;
 
-        this.lastMousePos = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY
-        };
+        this.lastMousePos.x = e.touches[0].clientX;
+        this.lastMousePos.y = e.touches[0].clientY;
 
         this.panBy(deltaX, deltaY);
     }
@@ -274,7 +271,6 @@ class KartaJS {
         this.currentOffset.x += deltaX;
         this.currentOffset.y += deltaY;
 
-
         // Обновляем позиции всех тайлов
         this.tiles.forEach((tile, key) => {
             const [z, x, y] = key.split('/').map(Number);
@@ -284,10 +280,8 @@ class KartaJS {
             tile.style.top = offsetY + 'px';
         });
 
-
-        // Обновляем центр карты
+        // Обновляем центр карты и маркеры
         this.updateCenterFromOffset();
-
         this.updateMarkersPosition();
     }
 
@@ -317,6 +311,7 @@ class KartaJS {
         this.zoomInBtn.disabled = newZoom >= this.options.maxZoom;
         this.zoomOutBtn.disabled = newZoom <= this.options.minZoom;
 
+        // При прокрутке колеса мыши, центруем карту по координатам мыши. Ещё хорошо бы сам указатель подвинуть в центр карты.
         if(byMouse) {
             this.setCenter([this.lastMousePos.lat, this.lastMousePos.lng]);
         } else {
