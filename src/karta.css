@@ -42,6 +42,16 @@
     font-size: 10px;
     color: #333;
 }
+.kjs-copyrighths a {
+    text-decoration: none;
+    color: #333;
+}
+.kjs-copyrighths a:visited {
+    color: #333;
+}
+.kjs-copyrighths a:hover {
+    text-decoration: underline;
+}
 
 /*  TILES   */
 .kjs-tiles-container {

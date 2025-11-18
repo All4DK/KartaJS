@@ -8,7 +8,7 @@ class KartaJS {
             maxZoom: options.maxZoom || 18,
             tileLayer: options.tileLayer || {
                 url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                attribution: '© OpenStreetMap',
+                attribution: '© <a href="https://osm.org" target="_blank">OpenStreetMap</a>',
                 subdomains: ['a', 'b', 'c']
             },
             showLatlngMonitor: (typeof options.showLatlngMonitor !== 'undefined') && options.showLatlngMonitor
@@ -41,7 +41,7 @@ class KartaJS {
                 <button class="kjs-zoom-in">▲</button>
                 <button class="kjs-zoom-out">▼</button>
             </div>
-            <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + ` | KartaJS</div>`;
+            <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + ` | <a href="https://github.com/All4DK/KartaJS" target="_blank">KartaJS</a></div>`;
 
         if (this.options.showLatlngMonitor) {
             this.container.innerHTML += '<div class="kjs-current-latlng">N:0.00 E:0.00</div>';
