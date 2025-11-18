@@ -41,13 +41,13 @@ class KartaJS {
                 <button class="kjs-zoom-in">▲</button>
                 <button class="kjs-zoom-out">▼</button>
             </div>
-            <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + `| KartaJS</div>`;
+            <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + ` | KartaJS</div>`;
 
         if (this.options.showLatlngMonitor) {
             this.container.innerHTML += '<div class="kjs-current-latlng">N:0.00 E:0.00</div>';
         }
         this.container.innerHTML += '' +
-            '<div class="kjs-popup-container" onclick="this.style.display=\'none\'">' +
+            '<div class="kjs-popup-container">' +
             '   <div class="kjs-popup"></div>' +
             '</div>';
 
@@ -82,8 +82,8 @@ class KartaJS {
         const centerTileY = Math.floor(centerPoint.y / this.tileSize);
 
         // Количество тайлов вокруг центра
-        const tilesX = Math.ceil(containerWidth / this.tileSize) + 2;
-        const tilesY = Math.ceil(containerHeight / this.tileSize) + 2;
+        const tilesX = Math.ceil(containerWidth / this.tileSize);
+        const tilesY = Math.ceil(containerHeight / this.tileSize);
 
         // Загружаем тайлы
         for (let x = centerTileX-tilesX; x <= centerTileX+tilesX; x++) {
@@ -162,6 +162,13 @@ class KartaJS {
         this.container.addEventListener('touchstart', this.onTouchStart.bind(this));
         this.container.addEventListener('touchmove', this.onTouchMove.bind(this));
         this.container.addEventListener('touchend', this.onTouchEnd.bind(this));
+
+        // Работа с попапом
+        this.popupContainer.addEventListener('click', (e) => {
+            if (e.target === this.popupContainer) {
+                this.hidePopup();
+            }
+        });
     }
 
     onMouseDown(e) {
@@ -402,6 +409,9 @@ class KartaJS {
         return { lat, lng };
     }
 
+    hidePopup() {
+        this.popupContainer.style.display = 'none';
+    }
 }
 
 class MarkerManager {
@@ -446,7 +456,7 @@ class SimpleMarker {
     createElement() {
         this.element = document.createElement('div');
         this.element.className = 'simple-marker';
-        this.element.style.cssText = `background: ${this.color};`;
+        this.element.style.background = `${this.color}`;
 
         if (this.title) {
             this.element.title = this.title;
@@ -473,19 +483,14 @@ class SimpleMarker {
             this.map.options.zoom
         );
 
-        const containerWidth = this.map.container.offsetWidth;
-        const containerHeight = this.map.container.offsetHeight;
-
-
-        const offsetX = point.x - centerPoint.x + (containerWidth / 2);
-        const offsetY = point.y - centerPoint.y + (containerHeight / 2);
+        const offsetX = point.x - centerPoint.x + (this.map.container.offsetWidth / 2);
+        const offsetY = point.y - centerPoint.y + (this.map.container.offsetHeight / 2);
 
         this.element.style.left = offsetX + 'px';
         this.element.style.top = offsetY + 'px';
     }
 
     showPopup() {
-        // Реализация попапа
         this.map.popup.innerHTML = this.popup;
         this.map.popupContainer.style.display = 'grid';
     }

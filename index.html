@@ -17,109 +17,49 @@
     <script src="src/karta.js"></script>
     <script>
         const map = new KartaJS('map', {
-            center: [45, 70],
+            center: [45, 70], // Center of the map
             zoom: 3,
-            showLatlngMonitor: true
+            showLatlngMonitor: true, // Show mouse-pointers coordinates
+
+            // Tile examples
+            // tileLayer: {
+            //     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+            //     attribution: '© OpenStreetMap | © CartoDB - Positron',
+            //     subdomains: ['a', 'b', 'c']
+            // }
+
+            // tileLayer: {
+            //     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            //     attribution: '© OpenStreetMap | © CartoDB - Dark Matter',
+            //     subdomains: ['a', 'b', 'c']
+            // }
+
+            // tileLayer: {
+            //     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+            //     attribution: '© OpenStreetMap | © OpenTopoMap',
+            //     subdomains: ['a', 'b', 'c']
+            // }
         });
 
-        // Добавляем метки
-        map.addMarker({
-            lat: 55.7558,
-            lng: 37.6173,
-            title: 'Moscow',
-            color: '#ff4444',
-            popup: 'Capital of Russia'
-        });
-        map.addMarker({
-            title: 'Russia - Moscow Kremlin',
-            lat: 55.7532,
-            lng: 37.6187
-        });
-        map.addMarker({
-            title: 'Russia - Hermitage Museum',
-            lat: 59.94,
-            lng: 30.314
-        });
-        map.addMarker({
-            title: 'Russia - Russky Bridge',
-            lat: 43.0636,
-            lng: 131.9084
-        });
-        map.addMarker({
-            title: 'France - Eiffel Tower',
-            lat: 48.858370,
-            lng: 2.294481
-        });
-        map.addMarker({
-            title: 'Italy - Colosseum',
-            lat: 41.890210,
-            lng: 12.492230
-        });
-        map.addMarker({
-            title: 'Spain - Sagrada Familia',
-            lat: 41.403630,
-            lng: 2.174360
-        });
-        map.addMarker({
-            title: 'United Kingdom - Big Ben',
-            lat: 51.500610,
-            lng: -0.124610
-        });
-        map.addMarker({
-            title: 'Czech Republic - Charles Bridge',
-            lat: 50.086483,
-            lng: 14.410856
-        });
-        map.addMarker({
-            title: 'UAE - Burj Khalifa',
-            lat: 25.197200,
-            lng: 55.274170
-        });
-        map.addMarker({
-            title: 'India - Taj Mahal',
-            lat: 27.175010,
-            lng: 78.042090
-        });
-        map.addMarker({
-            title: 'Canada - Niagara Falls',
-            lat: 43.079810,
-            lng: -79.074710
-        });
-        map.addMarker({
-            title: 'USA - Statue of Liberty',
-            lat: 40.689249,
-            lng: -74.044500
-        });
-        map.addMarker({
-            title: 'Peru - Machu Picchu',
-            lat: -13.163130,
-            lng: -72.544940
-        });
-        map.addMarker({
-            title: 'China - Great Wall of China (Badaling Section)',
-            lat: 40.359210,
-            lng: 116.020460
-        });
-        map.addMarker({
-            title: 'Turkey - Hagia Sophia',
-            lat: 41.008427,
-            lng: 28.979877
-        });
-        map.addMarker({
-            title: 'USA - Golden Gate Bridge',
-            lat: 37.819928,
-            lng: -122.478255
-        });
-        map.addMarker({
-            title: 'China - Forbidden City',
-            lat: 39.916345,
-            lng: 116.397155
-        });
-        map.addMarker({
-            title: 'Tanzania - Serengeti National Park',
-            lat: -2.333333,
-            lng: 34.833332
-        });
+        // Add markers
+        map.addMarker({title: 'Russia - Moscow Kremlin', lat: 55.7532, lng: 37.6187, color: 'linear-gradient(to bottom, #ffffff 0%, #ffffff 33.33%, #0039a6 33.33%, #0039a6 66.66%, #d52b1e 66.66%, #d52b1e 100%)', popup: 'Moscow - capital of Russia'});
+        map.addMarker({title: 'Russia - Hermitage Museum', lat: 59.94, lng: 30.314, popup: 'Museum'});
+        map.addMarker({title: 'Russia - Russky Bridge', lat: 43.0636, lng: 131.9084});
+        map.addMarker({title: 'Canada - Niagara Falls', lat: 43.079810, lng: -79.074710});
+        map.addMarker({title: 'Czech Republic - Charles Bridge', lat: 50.086483, lng: 14.410856});
+        map.addMarker({title: 'France - Eiffel Tower', lat: 48.858370, lng: 2.294481, color: 'linear-gradient(to right, #00F, #FFF, #F00)'});
+        map.addMarker({title: 'Italy - Colosseum', lat: 41.890210, lng: 12.492230});
+        map.addMarker({title: 'India - Taj Mahal', lat: 27.175010, lng: 78.042090});
+        map.addMarker({title: 'China - Great Wall of China (Badaling Section)', lat: 40.359210, lng: 116.020460, color: 'rgb(238, 28, 37)'});
+        map.addMarker({title: 'China - Forbidden City', lat: 39.916345, lng: 116.397155});
+        map.addMarker({title: 'Peru - Machu Picchu', lat: -13.163130, lng: -72.544940});
+        map.addMarker({title: 'Spain - Sagrada Familia', lat: 41.403630, lng: 2.174360});
+        map.addMarker({title: 'Tanzania - Serengeti National Park', lat: -2.333333, lng: 34.833332});
+        map.addMarker({title: 'Turkey - Hagia Sophia', lat: 41.008427, lng: 28.979877});
+        map.addMarker({title: 'UAE - Burj Khalifa', lat: 25.197200, lng: 55.274170});
+        map.addMarker({title: 'United Kingdom - Big Ben', lat: 51.500610, lng: -0.124610});
+        map.addMarker({title: 'USA - Golden Gate Bridge', lat: 37.819928, lng: -122.478255});
+        map.addMarker({title: 'USA - Statue of Liberty', lat: 40.689249, lng: -74.044500});
     </script>
 </body>
 </html>

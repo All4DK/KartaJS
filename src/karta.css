@@ -89,7 +89,7 @@
     height: 100%;
     background-color: rgba(3,3,3, 0.5);
     display: none;
-    place-items: center; /
+    place-items: center;
     pointer-events: auto;
 }
 
@@ -102,4 +102,5 @@
     height: 200px;
     background-color: #fff;
     border: 2px solid #ddd;
+    pointer-events: auto;
 }
