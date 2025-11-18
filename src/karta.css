@@ -68,15 +68,26 @@
     pointer-events: none;
 }
 
-.kjs-markers-container .simple-marker {
+.kjs-markers-container .marker {
     position: absolute;
+    cursor: grab;
+    pointer-events: auto;
+}
+
+.kjs-markers-container .simple-marker {
     width: 20px;
     height: 20px;
     border: 2px solid white;
     border-radius: 50%;
-    cursor: grab;
     transform: translate(-50%, -50%);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.kjs-markers-container .marker-with-icon {
+    width: 32px;
+    height: 37px;
+    margin-left: -16px;
+    margin-top: -37px;
     pointer-events: auto;
 }
 /*  //MARKERS */
@@ -94,13 +105,13 @@
 }
 
 .kjs-popup-container .kjs-popup{
-    /*position: absolute;*/
     margin: auto;
     top: 0;
     left: 0;
-    width: 300px;
-    height: 200px;
+    width: 450px;
+    height: 300px;
     background-color: #fff;
     border: 2px solid #ddd;
     pointer-events: auto;
+    overflow: scroll;
 }

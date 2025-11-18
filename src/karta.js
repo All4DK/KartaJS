@@ -441,17 +441,25 @@ class SimpleMarker {
         this.lat = options.lat;
         this.lng = options.lng;
         this.title = options.title || '';
-        this.color = options.color || '#3388ff';
+        this.color = options.color || '#38F';
         this.popup = options.popup || null;
+        this.ico = options.ico || null;
+        this.cssClass = options.cssClass || 'simple-marker';
 
         this.createElement();
         this.updatePosition();
     }
 
     createElement() {
-        this.element = document.createElement('div');
-        this.element.className = 'simple-marker';
-        this.element.style.background = `${this.color}`;
+        if (this.ico) {
+            this.element = document.createElement('img');
+            this.element.src = this.ico;
+        } else {
+            this.element = document.createElement('div');
+            this.element.style.background = `${this.color}`;
+        }
+
+        this.element.className = 'marker ' + this.cssClass;
 
         if (this.title) {
             this.element.title = this.title;
