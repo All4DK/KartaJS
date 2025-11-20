@@ -62,7 +62,7 @@
     height: 100%;
 }
 
-.kjs-tiles-container .kjs-tile {
+.kjs-tiles-container .tile {
     position: absolute;
     image-rendering: pixelated;
 }
@@ -84,7 +84,7 @@
     pointer-events: auto;
 }
 
-.kjs-markers-container .simple-marker {
+.kjs-markers-container .marker.simple {
     width: 20px;
     height: 20px;
     border: 2px solid white;
@@ -93,15 +93,14 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.kjs-markers-container .marker-with-icon {
+.kjs-markers-container .marker.icon {
     width: 32px;
     height: 37px;
-    margin-left: -16px;
-    margin-top: -37px;
-    pointer-events: auto;
+    transform: translate(-50%, -100%);
 }
 /*  //MARKERS */
 
+/* POPUP */
 .kjs-popup-container {
     position: absolute;
     top: 0;
@@ -114,7 +113,7 @@
     pointer-events: auto;
 }
 
-.kjs-popup-container .kjs-popup{
+.kjs-popup-container .popup{
     margin: auto;
     top: 0;
     left: 0;
@@ -124,4 +123,6 @@
     border: 2px solid #ddd;
     pointer-events: auto;
     overflow: scroll;
+    padding: 5px;
 }
+/* //POPUP */

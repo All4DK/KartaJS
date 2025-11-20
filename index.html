@@ -42,10 +42,11 @@
         });
 
         // Add markers
+        map.addMarker({title: '0.00, 0.00', lat: 0, lng: 0, color: 'green'});
         map.addMarker({title: 'Russia - Moscow Kremlin', lat: 55.7532, lng: 37.6187, color: 'linear-gradient(to bottom, #ffffff 0%, #ffffff 33.33%, #0039a6 33.33%, #0039a6 66.66%, #d52b1e 66.66%, #d52b1e 100%)', popup: 'Moscow - capital of Russia'});
-        map.addMarker({title: 'Russia - Hermitage Museum', lat: 59.9405, lng: 30.3137, ico: 'img/museum.png', cssClass: 'marker-with-icon', popup: 'Museum'});
+        map.addMarker({title: 'Russia - Hermitage Museum', lat: 59.9405, lng: 30.3137, ico: 'img/museum.png', cssClass: 'icon', popup: 'Museum'});
         map.addMarker({title: 'Russia - Russky Bridge', lat: 43.0636, lng: 131.9084});
-        map.addMarker({title: 'Canada - Niagara Falls', lat: 43.079810, lng: -79.074710, color: '#9F9', popup: '<h2>Niagara Falls</h2><img src="http://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/3Falls_Niagara.jpg/250px-3Falls_Niagara.jpg" style="float: left"> Niagara Falls is a group of three waterfalls at the southern end of Niagara Gorge, spanning the border between the province of Ontario in Canada and the state of New York in the United States.'});
+        map.addMarker({title: 'Canada - Niagara Falls', lat: 43.079810, lng: -79.074710, color: '#9F9', popup: '<h2 style="text-align: center;">Niagara Falls</h2><img src="http://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/3Falls_Niagara.jpg/250px-3Falls_Niagara.jpg" style="float: left; margin: 0 5px 5px 0;"> Niagara Falls is a group of three waterfalls at the southern end of Niagara Gorge, spanning the border between the province of Ontario in Canada and the state of New York in the United States.'});
         map.addMarker({title: 'Czech Republic - Charles Bridge', lat: 50.086483, lng: 14.410856});
         map.addMarker({title: 'France - Eiffel Tower', lat: 48.858370, lng: 2.294481, color: 'linear-gradient(to right, #00F, #FFF, #F00)'});
         map.addMarker({title: 'Italy - Colosseum', lat: 41.890210, lng: 12.492230});

@@ -48,13 +48,13 @@ class KartaJS {
         }
         this.container.innerHTML += '' +
             '<div class="kjs-popup-container">' +
-            '   <div class="kjs-popup"></div>' +
+            '   <div class="popup"></div>' +
             '</div>';
 
         this.tilesContainer = this.container.querySelector('.kjs-tiles-container');
         this.markersContainer = this.container.querySelector('.kjs-markers-container');
         this.popupContainer = this.container.querySelector('.kjs-popup-container');
-        this.popup = this.container.querySelector('.kjs-popup');
+        this.popup = this.container.querySelector('.popup');
         this.currentLatlng = this.container.querySelector('.kjs-current-latlng');
         this.zoomInBtn = this.container.querySelector('.kjs-zoom-in');
         this.zoomOutBtn = this.container.querySelector('.kjs-zoom-out');
@@ -102,7 +102,7 @@ class KartaJS {
         if (this.tiles.has(tileKey)) return;
 
         const tile = document.createElement('div');
-        tile.className = 'kjs-tile';
+        tile.className = 'tile';
         tile.style.cssText = `
             width: ${this.tileSize}px;
             height: ${this.tileSize}px;
@@ -133,7 +133,7 @@ class KartaJS {
         if (url) {
             img.src = url;
             img.onload = () => {
-                tile.style.border = '';
+                // tile.style.border = '';
                 tile.style.backgroundImage = `url(${url})`;
                 tile.style.backgroundSize = 'cover';
             };
@@ -416,7 +416,7 @@ class MarkerManager {
     }
 
     addMarker(options) {
-        const marker = new SimpleMarker(this.map, options);
+        const marker = new Marker(this.map, options);
         this.markers.push(marker);
         return marker;
     }
@@ -435,7 +435,7 @@ class MarkerManager {
     }
 }
 
-class SimpleMarker {
+class Marker {
     constructor(map, options) {
         this.map = map;
         this.lat = options.lat;
@@ -444,7 +444,7 @@ class SimpleMarker {
         this.color = options.color || '#38F';
         this.popup = options.popup || null;
         this.ico = options.ico || null;
-        this.cssClass = options.cssClass || 'simple-marker';
+        this.cssClass = options.cssClass || 'simple';
 
         this.createElement();
         this.updatePosition();
