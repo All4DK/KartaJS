@@ -11,7 +11,8 @@ class KartaJS {
                 attribution: '© <a href="https://osm.org" target="_blank">OpenStreetMap</a>',
                 subdomains: ['a', 'b', 'c']
             },
-            showLatlngMonitor: (typeof options.showLatlngMonitor !== 'undefined') && options.showLatlngMonitor
+            showLatlngMonitor: (typeof options.showLatlngMonitor !== 'undefined') && options.showLatlngMonitor,
+            showGrid: (typeof options.showGrid !== 'undefined') && options.showGrid,
         };
 
         this.tileSize = 256;
@@ -133,7 +134,10 @@ class KartaJS {
         if (url) {
             img.src = url;
             img.onload = () => {
-                // tile.style.border = '';
+                if (!this.options.showGrid) {
+                    tile.style.border = '';
+                }
+
                 tile.style.backgroundImage = `url(${url})`;
                 tile.style.backgroundSize = 'cover';
             };
