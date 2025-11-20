@@ -254,23 +254,41 @@ class KartaJS {
             this.isDragging = true;
             this.lastMousePos.x = e.touches[0].clientX;
             this.lastMousePos.y = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+            this.isZooming = true;
+            this.lastTouchDistance = this.getTouchDistance(e.touches);
         }
     }
 
     onTouchMove(e) {
-        if (!this.isDragging || e.touches.length !== 1) return;
+        if (this.isZooming && e.touches.length === 2) {
+            const currentDistance = this.getTouchDistance(e.touches);
+            const zoomDelta = (currentDistance - this.lastTouchDistance) * 0.01;
 
-        const deltaX = e.touches[0].clientX - this.lastMousePos.x;
-        const deltaY = e.touches[0].clientY - this.lastMousePos.y;
+            const newZoom = Math.max(this.options.minZoom,
+                Math.min(this.options.maxZoom,
+                    this.options.zoom + zoomDelta));
 
-        this.lastMousePos.x = e.touches[0].clientX;
-        this.lastMousePos.y = e.touches[0].clientY;
+            if (newZoom !== this.options.zoom) {
+                this.setZoom(newZoom);
+            }
 
-        this.panBy(deltaX, deltaY);
+            this.lastTouchDistance = currentDistance;
+        }
+        if (this.isDragging && e.touches.length === 1) {
+            const deltaX = e.touches[0].clientX - this.lastMousePos.x;
+            const deltaY = e.touches[0].clientY - this.lastMousePos.y;
+
+            this.lastMousePos.x = e.touches[0].clientX;
+            this.lastMousePos.y = e.touches[0].clientY;
+
+            this.panBy(deltaX, deltaY);
+        }
     }
 
     onTouchEnd() {
         this.isDragging = false;
+        this.isZooming = false;
 
         // Перезагружаем тайлы
         this.loadTiles();
@@ -420,6 +438,12 @@ class KartaJS {
 
     hidePopup() {
         this.popupContainer.style.display = 'none';
+    }
+
+    getTouchDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
     }
 }
 
