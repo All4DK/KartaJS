@@ -170,6 +170,13 @@ class KartaJS {
                 this.hidePopup();
             }
         });
+
+        // Keyboard events
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape') {
+                this.hidePopup();
+            }
+        });
     }
 
     onMouseDown(e) {
