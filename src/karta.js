@@ -173,9 +173,12 @@ class KartaJS {
 
         // Keyboard events
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'Escape') {
-                this.hidePopup();
-            }
+            if (e.key === 'Escape') {this.hidePopup();}
+            // Move the map
+            if (e.key === 'ArrowRight') {this.panBy(-10, 0);}
+            if (e.key === 'ArrowLeft') {this.panBy(10, 0);}
+            if (e.key === 'ArrowUp') {this.panBy(0, 10);}
+            if (e.key === 'ArrowDown') {this.panBy(0, -10);}
         });
     }
 
