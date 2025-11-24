@@ -104,6 +104,7 @@ class KartaJS {
 
         const tile = document.createElement('div');
         tile.className = 'tile';
+        tile.setAttribute('zoom', z);
         tile.style.cssText = `
             width: ${this.tileSize}px;
             height: ${this.tileSize}px;
@@ -174,6 +175,11 @@ class KartaJS {
                 this.hidePopup();
             }
         });
+        this.popupContainer.addEventListener('touchstart', (e) => {
+            if (e.target === this.popupContainer) {
+                this.hidePopup();
+            }
+        });
 
         // Keyboard events
         document.addEventListener('keyup', (e) => {
@@ -187,102 +193,72 @@ class KartaJS {
     }
 
     onMouseDown(e) {
-        this.isDragging = true;
-        this.lastMousePos.x = e.clientX;
-        this.lastMousePos.y = e.clientY;
-        this.container.style.cursor = 'grabbing';
         e.preventDefault();
+        this.isDragging = true;
+        this.container.style.cursor = 'grabbing';
     }
 
     onMouseMove(e) {
-        const rect = this.container.getBoundingClientRect();
-        const clientX = e.clientX - rect.left;
-        const clientY = e.clientY - rect.top;
-        const coords = this.pointToLatLng(
-            clientX - this.currentOffset.x,
-            clientY - this.currentOffset.y,
-            this.options.zoom
-        );
+        const coords = this.pointToCoords(e.clientX, e.clientY);
+        this.updateLatlngMonitor(coords);
+        this.setMousePos(coords);
 
-        if (this.options.showLatlngMonitor) {
-            this.currentLatlng.innerHTML =
-                ((coords.lat > 0) ? 'N:' : 'S:')
-                + Math.abs(coords.lat.toFixed(4))
-                + ' '
-                + ((coords.lng > 0) ? 'E:' : 'W:')
-                + Math.abs(coords.lng.toFixed(4));
+        if (this.isDragging) {
+            this.panBy(coords.deltaX, coords.deltaY);
         }
-
-        if (!this.isDragging) {
-            this.lastMousePos.lat = coords.lat;
-            this.lastMousePos.lng = coords.lng;
-            return;
-        }
-
-        const deltaX = clientX - this.lastMousePos.x;
-        const deltaY = clientY - this.lastMousePos.y;
-
-        this.lastMousePos.x = clientX;
-        this.lastMousePos.y = clientY;
-
-        this.panBy(deltaX, deltaY);
     }
 
     onMouseUp() {
         this.isDragging = false;
         this.container.style.cursor = 'default';
 
-        // Перезагружаем тайлы
-        this.loadTiles(false);
+        this.loadTiles(false); // Load new tiles
     }
 
     onWheel(e) {
         e.preventDefault();
-
         const zoomDelta = e.deltaY > 0 ? -1 : 1;
-        const newZoom = Math.max(this.options.minZoom,
-                               Math.min(this.options.maxZoom,
-                                       this.options.zoom + zoomDelta));
-
-        if (newZoom !== this.options.zoom) {
-            this.setZoom(newZoom, true);
-        }
+        this.setZoom(this.getZoom() + zoomDelta, true);
     }
 
     onTouchStart(e) {
+        e.preventDefault();
+
         if (e.touches.length === 1) {
             this.isDragging = true;
-            this.lastMousePos.x = e.touches[0].clientX;
-            this.lastMousePos.y = e.touches[0].clientY;
-        } else if (e.touches.length === 2) {
+
+            const coords = this.pointToCoords(e.touches[0].clientX, e.touches[0].clientY);
+            this.setMousePos(coords);
+            this.updateLatlngMonitor(coords);
+        }
+
+        if (e.touches.length === 2) {
             this.isZooming = true;
+            this.startTouchDistance = this.getTouchDistance(e.touches);
             this.lastTouchDistance = this.getTouchDistance(e.touches);
         }
     }
 
     onTouchMove(e) {
-        if (this.isZooming && e.touches.length === 2) {
-            const currentDistance = this.getTouchDistance(e.touches);
-            const zoomDelta = (currentDistance - this.lastTouchDistance) * 0.01;
+        e.preventDefault();
 
-            const newZoom = Math.max(this.options.minZoom,
-                Math.min(this.options.maxZoom,
-                    this.options.zoom + zoomDelta));
-
-            if (newZoom !== this.options.zoom) {
-                this.setZoom(newZoom);
-            }
-
-            this.lastTouchDistance = currentDistance;
-        }
         if (this.isDragging && e.touches.length === 1) {
-            const deltaX = e.touches[0].clientX - this.lastMousePos.x;
-            const deltaY = e.touches[0].clientY - this.lastMousePos.y;
+            const coords = this.pointToCoords(e.touches[0].clientX, e.touches[0].clientY);
+            this.setMousePos(coords);
+            this.panBy(coords.deltaX, coords.deltaY);
+        }
 
-            this.lastMousePos.x = e.touches[0].clientX;
-            this.lastMousePos.y = e.touches[0].clientY;
-
-            this.panBy(deltaX, deltaY);
+        if (this.isZooming && e.touches.length === 2) {
+            this.lastTouchDistance = this.getTouchDistance(e.touches);
+            const zoomDelta = (this.startTouchDistance / this.lastTouchDistance);
+            if (zoomDelta < 0.8) {
+                this.zoomIn();
+                this.startTouchDistance = this.lastTouchDistance
+            }
+            if (zoomDelta > 1.2) {
+                this.zoomOut();
+                this.startTouchDistance = this.lastTouchDistance
+            }
         }
     }
 
@@ -290,8 +266,20 @@ class KartaJS {
         this.isDragging = false;
         this.isZooming = false;
 
-        // Перезагружаем тайлы
-        this.loadTiles();
+        this.loadTiles(false); // Load new tiles
+    }
+
+    updateLatlngMonitor(coords) {
+        if (!this.options.showLatlngMonitor) {
+            return;
+        }
+
+        this.currentLatlng.innerHTML =
+            ((this.lastMousePos.lat > 0) ? 'N:' : 'S:')
+            + Math.abs(coords.lat.toFixed(4))
+            + ' '
+            + ((this.lastMousePos.lng > 0) ? 'E:' : 'W:')
+            + Math.abs(coords.lng.toFixed(4));
     }
 
     /**
@@ -317,6 +305,9 @@ class KartaJS {
         this.updateMarkersPosition();
     }
 
+    /**
+     * Обновляет текущие координаты центра центра карты
+     */
     updateCenterFromOffset() {
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
@@ -324,13 +315,19 @@ class KartaJS {
         const centerPixelX = -this.currentOffset.x + containerWidth / 2;
         const centerPixelY = -this.currentOffset.y + containerHeight / 2;
 
-        const centerPoint = this.pointToLatLng(
-            centerPixelX,
-            centerPixelY,
-            this.options.zoom
-        );
+        const centerPoint = this.pointToLatLng(centerPixelX, centerPixelY);
 
         this.options.center = [centerPoint.lat, centerPoint.lng];
+    }
+
+    zoomIn()
+    {
+        this.setZoom(this.getZoom() + 1);
+    }
+
+    zoomOut()
+    {
+        this.setZoom(this.getZoom() - 1);
     }
 
     setZoom(newZoom, byMouse = false) {
@@ -376,7 +373,7 @@ class KartaJS {
     setCenter(latlng) {
         this.options.center = latlng;
         this.calcOffset(this.options.center);
-        this.loadTiles();
+        this.loadTiles(false);
     }
 
     getCenter() {
@@ -422,7 +419,11 @@ class KartaJS {
         return { x, y };
     }
 
-    pointToLatLng(x, y, zoom) {
+    pointToLatLng(x, y, zoom = 0) {
+        if (zoom === 0) {
+            zoom = this.getZoom();
+        }
+
         const scale = 256 * Math.pow(2, zoom);
 
         // Обратное преобразование долготы
@@ -434,6 +435,43 @@ class KartaJS {
         const lat = this.radiansToDegrees(latRad);
 
         return { lat, lng };
+    }
+
+    /**
+     * считает координаты (x,y,lat,lng,deltaX,deltaY) для точки на экране (учитыавя смещение карты)
+     * @param x
+     * @param y
+     */
+    pointToCoords(x, y){
+        const rect = this.container.getBoundingClientRect();
+
+        const clientX = x - rect.left;
+        const clientY = y - rect.top;
+
+        const coords = this.pointToLatLng(
+            clientX - this.currentOffset.x,
+            clientY - this.currentOffset.y
+        );
+
+        return {
+            x: clientX,
+            y: clientY,
+            lat: coords.lat,
+            lng: coords.lng,
+            deltaX: clientX - this.lastMousePos.x,
+            deltaY: clientY - this.lastMousePos.y
+        }
+    }
+
+    /**
+     * Сохраняет переданные координаты (x,y,lat,lng) как координаты мыши
+     * @param coords
+     */
+    setMousePos(coords) {
+        this.lastMousePos.x = coords.x;
+        this.lastMousePos.y = coords.y;
+        this.lastMousePos.lat = coords.lat;
+        this.lastMousePos.lng = coords.lng;
     }
 
     hidePopup() {
@@ -508,6 +546,10 @@ class Marker {
         // Обработчик клика
         if (this.popup) {
             this.element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showPopup();
+            });
+            this.element.addEventListener('touchstart', (e) => {
                 e.stopPropagation();
                 this.showPopup();
             });
