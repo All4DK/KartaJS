@@ -55,8 +55,8 @@ KartaJS is a minimal yet powerful mapping library built with pure JavaScript. No
         // Simplest marker
         map.addMarker({title: 'India - Taj Mahal', lat: 27.1750, lng: 78.0420});
 
-        // Marker with CSS-drawed icon and popup
-        map.addMarker({title: 'Russia - Moscow Kremlin', lat: 55.7532, lng: 37.6187, color: 'linear-gradient(to bottom, #ffffff 0%, #ffffff 33.33%, #0039a6 33.33%, #0039a6 66.66%, #d52b1e 66.66%, #d52b1e 100%)', popup: 'Moscow - capital of Russia'});
+        // Marker with green icon and popup
+        map.addMarker({title: 'Russia - Moscow Kremlin', lat: 55.7532, lng: 37.6187, color: 'green', popup: 'Moscow the capital of Russia'});
 
         // Marker with icon image
         map.addMarker({title: 'Russia - Hermitage Museum', lat: 59.9405, lng: 30.3137, ico: 'img/museum.png', cssClass: 'icon', popup: 'Museum'});
