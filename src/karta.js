@@ -17,7 +17,7 @@ class KartaJS {
 
         this.tileSize = 256;
         this.isDragging = false;
-        this.lastMousePos = { x: 0, y: 0 , lat: 0, lng: 0};
+        this.lastMousePos = {x: 0, y: 0, lat: 0, lng: 0};
         this.calcOffset(this.options.center);
 
         this.tiles = new Map(); // Кеш загруженных тайлов
@@ -63,7 +63,7 @@ class KartaJS {
 
     loadTiles(clear = true) {
         // Очищаем старые тайлы
-        if (clear){
+        if (clear) {
             this.tilesContainer.innerHTML = '';
             this.tiles.clear();
         }
@@ -87,8 +87,8 @@ class KartaJS {
         const tilesY = Math.ceil(containerHeight / this.tileSize);
 
         // Загружаем тайлы
-        for (let x = centerTileX-tilesX; x <= centerTileX+tilesX; x++) {
-            for (let y = centerTileY-tilesY; y <= centerTileY+tilesY; y++) {
+        for (let x = centerTileX - tilesX; x <= centerTileX + tilesX; x++) {
+            for (let y = centerTileY - tilesY; y <= centerTileY + tilesY; y++) {
                 this.loadTile(x, y, this.options.zoom);
             }
         }
@@ -158,7 +158,7 @@ class KartaJS {
         document.addEventListener('mouseup', this.onMouseUp.bind(this));
 
         // Зум колесом мыши
-        this.container.addEventListener('wheel', this.onWheel.bind(this), { passive: false });
+        this.container.addEventListener('wheel', this.onWheel.bind(this), {passive: false});
 
         // Кнопки зума
         this.zoomInBtn.addEventListener('click', () => this.setZoom(this.options.zoom + 1));
@@ -183,12 +183,23 @@ class KartaJS {
 
         // Keyboard events
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'Escape') {this.hidePopup();}
-            // Move the map
-            if (e.key === 'ArrowRight') {this.panBy(-10, 0);}
-            if (e.key === 'ArrowLeft') {this.panBy(10, 0);}
-            if (e.key === 'ArrowUp') {this.panBy(0, 10);}
-            if (e.key === 'ArrowDown') {this.panBy(0, -10);}
+            switch (e.key) {
+                case 'Escape':
+                    this.hidePopup();
+                    break;
+                case 'ArrowRight':
+                    this.panBy(-10, 0);
+                    break;
+                case 'ArrowLeft':
+                    this.panBy(10, 0);
+                    break;
+                case 'ArrowUp':
+                    this.panBy(0, 10);
+                    break;
+                case 'ArrowDown':
+                    this.panBy(0, -10);
+                    break;
+            }
         });
     }
 
@@ -320,13 +331,11 @@ class KartaJS {
         this.options.center = [centerPoint.lat, centerPoint.lng];
     }
 
-    zoomIn()
-    {
+    zoomIn() {
         this.setZoom(this.getZoom() + 1);
     }
 
-    zoomOut()
-    {
+    zoomOut() {
         this.setZoom(this.getZoom() - 1);
     }
 
@@ -341,7 +350,7 @@ class KartaJS {
         this.zoomOutBtn.disabled = newZoom <= this.options.minZoom;
 
         // При прокрутке колеса мыши, центруем карту по координатам мыши. Ещё хорошо бы сам указатель подвинуть в центр карты.
-        if(byMouse) {
+        if (byMouse) {
             this.setCenter([this.lastMousePos.lat, this.lastMousePos.lng]);
         } else {
             this.setCenter(this.getCenter());
@@ -389,7 +398,7 @@ class KartaJS {
             lng,
             this.options.zoom
         );
-        this.currentOffset = {x: Math.floor(rect.width / 2)-pnt.x, y: Math.floor(rect.height / 2)-pnt.y}
+        this.currentOffset = {x: Math.floor(rect.width / 2) - pnt.x, y: Math.floor(rect.height / 2) - pnt.y}
     }
 
     getZoom() {
@@ -413,10 +422,10 @@ class KartaJS {
         const x = (lng + 180) * (scale / 360);
 
         // Широта - проекция Меркатора (сжимает у полюсов)
-        const mercator = Math.log(Math.tan(Math.PI/4 + latRad/2));
+        const mercator = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
         const y = (scale / 2) - (scale * mercator / (2 * Math.PI));
 
-        return { x, y };
+        return {x, y};
     }
 
     pointToLatLng(x, y, zoom = 0) {
@@ -431,10 +440,10 @@ class KartaJS {
 
         // Обратное преобразование широты
         const mercator = (scale / 2 - y) * (2 * Math.PI) / scale;
-        const latRad = 2 * Math.atan(Math.exp(mercator)) - Math.PI/2;
+        const latRad = 2 * Math.atan(Math.exp(mercator)) - Math.PI / 2;
         const lat = this.radiansToDegrees(latRad);
 
-        return { lat, lng };
+        return {lat, lng};
     }
 
     /**
@@ -442,7 +451,7 @@ class KartaJS {
      * @param x
      * @param y
      */
-    pointToCoords(x, y){
+    pointToCoords(x, y) {
         const rect = this.container.getBoundingClientRect();
 
         const clientX = x - rect.left;
