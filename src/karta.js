@@ -69,7 +69,7 @@ class KartaJS {
         this.tilesContainer.innerHTML = '';
         this.tiles.clear();
 
-        this.loadTile()
+        this.loadTiles();
     }
 
     /**
@@ -228,7 +228,7 @@ class KartaJS {
         this.isDragging = false;
         this.container.style.cursor = 'default';
 
-        this.loadTiles(); // Load new tiles
+        this.loadTiles();
     }
 
     onWheel(e) {
@@ -281,7 +281,7 @@ class KartaJS {
         this.isDragging = false;
         this.isZooming = false;
 
-        this.loadTiles(); // Load new tiles
+        this.loadTiles();
     }
 
     updateLatlngMonitor(coords) {
