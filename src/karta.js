@@ -20,7 +20,8 @@ class KartaJS {
         this.lastMousePos = {x: 0, y: 0, lat: 0, lng: 0};
         this.calcOffset(this.options.center);
 
-        this.tiles = new Map(); // Кеш загруженных тайлов
+        this.tiles = new Map(); // Tiles cache
+        this.queuedTiles = 0; // Counting tiles in queue or while loading
         this.markerManager = new MarkerManager(this);
         this.init();
     }
@@ -65,7 +66,7 @@ class KartaJS {
      * Очищает имеющиеся тайлы и загружает новые, попадающие в область видимости.
      * Требуетяс при изменении масштаба
      */
-    reloadTiles () {
+    reloadTiles() {
         this.tilesContainer.innerHTML = '';
         this.tiles.clear();
 
@@ -82,7 +83,6 @@ class KartaJS {
             this.options.zoom
         );
 
-
         // Вычисляем видимую область
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
@@ -91,8 +91,8 @@ class KartaJS {
         const centerTileY = Math.floor(centerPoint.y / this.tileSize);
 
         // Количество тайлов вокруг центра
-        const tilesX = Math.ceil(containerWidth / this.tileSize);
-        const tilesY = Math.ceil(containerHeight / this.tileSize);
+        const tilesX = Math.ceil((containerWidth / this.tileSize) / 2);
+        const tilesY = Math.ceil((containerHeight / this.tileSize) / 2);
 
         // Загружаем тайлы
         for (let x = centerTileX - tilesX; x <= centerTileX + tilesX; x++) {
@@ -135,10 +135,11 @@ class KartaJS {
             .replace('{x}', x)
             .replace('{y}', y) : '';
 
-        tile.style.backgroundColor = '#f0f0f0';
+        tile.style.backgroundColor = 'transparent';
         tile.style.border = '1px solid #ddd';
         if (url) {
             img.src = url;
+            this.queuedTiles++;
             img.onload = () => {
                 if (!this.options.showGrid) {
                     tile.style.border = '';
@@ -146,14 +147,31 @@ class KartaJS {
 
                 tile.style.backgroundImage = `url(${url})`;
                 tile.style.backgroundSize = 'cover';
+                this.queuedTiles--;
+                this.clearOldTiles();
             };
             img.onerror = () => {
                 console.warn('Failed to load tile:', url);
+                this.queuedTiles--;
+                this.clearOldTiles();
             };
         }
 
         this.tilesContainer.appendChild(tile);
         this.tiles.set(tileKey, tile);
+    }
+
+    clearOldTiles() {
+        this.tiles.forEach((tile, key, currentMap) => {
+            const delta = Math.abs(parseInt(tile.getAttribute('zoom')) - this.getZoom());
+            if (
+                (delta === 1 && this.queuedTiles === 0) // Remove from neighbour layer
+                || (delta > 1) // Remove from far layer
+            ) {
+                tile.remove();
+                currentMap.delete(key);
+            }
+        });
     }
 
     setupEvents() {
@@ -344,6 +362,7 @@ class KartaJS {
             return;
         }
 
+        const multiplier = newZoom > this.options.zoom ? 2 : 0.5;
         this.options.zoom = newZoom;
 
         // Update zoom-buttons state (enabled/disabled)
@@ -357,9 +376,21 @@ class KartaJS {
             this.setCenter(this.getCenter());
         }
 
+        // Resize existing tiles before loading new ones
+        this.tiles.forEach(tile => {
+            tile.style.left = (parseInt(tile.style.left) * multiplier) + 'px';
+            tile.style.top = (parseInt(tile.style.top) * multiplier) + 'px';
+            tile.style.width = (parseInt(tile.style.width) * multiplier) + 'px';
+            tile.style.height = (parseInt(tile.style.height) * multiplier) + 'px';
+        });
+
         this.panBy();
-        // Перезагружаем тайлы
-        this.reloadTiles();
+        this.updateMarkersPosition();
+
+        // "setTimeout" is used to skip unnecessary levels when zooming quickly
+        setTimeout(() => {
+            this.loadTiles();
+        }, 300);
     }
 
     getZoom() {
