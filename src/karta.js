@@ -19,6 +19,7 @@ class KartaJS {
         this.lastMousePos = {x: 0, y: 0, lat: 0, lng: 0};
         this.calcOffset(this.options.center);
         this.clearTimer = null;
+        this.loadTimer = null;
         this.tiles = new Map(); // Tiles cache
         this.queuedTiles = 0; // Counting tiles in queue or while loading
         this.markerManager = new MarkerManager(this);
@@ -131,10 +132,12 @@ class KartaJS {
                 tile.style.backgroundImage = `url(${url})`;
                 tile.style.backgroundSize = 'cover';
                 this.queuedTiles--;
+                this.clearOldTiles();
             };
             img.onerror = () => {
                 console.warn('Failed to load tile:', url);
                 this.queuedTiles--;
+                this.clearOldTiles();
             };
         }
 
@@ -320,20 +323,9 @@ class KartaJS {
         this.tiles.forEach((tile, key) => {
             const [z, x, y] = key.split('/').map(Number);
             const zoomDelta = this.getZoom() - z;
-
-            let multiplier = (this.getZoom() > z) ? 2 : 0.5;
-
-            if (zoomDelta === 0) {
-                multiplier = 1;
-            }
-
-            multiplier = Math.pow(multiplier, Math.abs(this.getZoom() - z));
-
+            const multiplier = Math.pow(2, zoomDelta);
             const offsetX = x * this.tileSize * multiplier + this.currentOffset.x;
             const offsetY = y * this.tileSize * multiplier + this.currentOffset.y;
-
-            // const offsetX = x * this.tileSize + this.currentOffset.x;
-            // const offsetY = y * this.tileSize + this.currentOffset.y;
 
             tile.style.left = offsetX + 'px';
             tile.style.top = offsetY + 'px';
@@ -405,9 +397,10 @@ class KartaJS {
         });
 
         // "setTimeout" is used to skip unnecessary levels when zooming quickly
-        setTimeout(() => {
+        clearTimeout(this.loadTimer);
+        this.loadTimer = setTimeout(() => {
             this.loadTiles();
-        }, 300);
+        }, 500);
     }
 
     getZoom() {
