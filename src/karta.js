@@ -12,14 +12,13 @@ class KartaJS {
                 subdomains: ['a', 'b', 'c']
             },
             showLatlngMonitor: (typeof options.showLatlngMonitor !== 'undefined') && options.showLatlngMonitor,
-            showGrid: (typeof options.showGrid !== 'undefined') && options.showGrid,
         };
 
         this.tileSize = 256;
         this.isDragging = false;
         this.lastMousePos = {x: 0, y: 0, lat: 0, lng: 0};
         this.calcOffset(this.options.center);
-
+        this.clearTimer = null;
         this.tiles = new Map(); // Tiles cache
         this.queuedTiles = 0; // Counting tiles in queue or while loading
         this.markerManager = new MarkerManager(this);
@@ -63,17 +62,6 @@ class KartaJS {
     }
 
     /**
-     * Очищает имеющиеся тайлы и загружает новые, попадающие в область видимости.
-     * Требуетяс при изменении масштаба
-     */
-    reloadTiles() {
-        this.tilesContainer.innerHTML = '';
-        this.tiles.clear();
-
-        this.loadTiles();
-    }
-
-    /**
      * Загружает новые тайлы, которые попадают в область видимости
      */
     loadTiles() {
@@ -82,7 +70,6 @@ class KartaJS {
             this.options.center[1],
             this.options.zoom
         );
-
         // Вычисляем видимую область
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
@@ -91,8 +78,8 @@ class KartaJS {
         const centerTileY = Math.floor(centerPoint.y / this.tileSize);
 
         // Количество тайлов вокруг центра
-        const tilesX = Math.ceil((containerWidth / this.tileSize) / 2);
-        const tilesY = Math.ceil((containerHeight / this.tileSize) / 2);
+        const tilesX = Math.ceil((containerWidth / this.tileSize) / 2) + 1;
+        const tilesY = Math.ceil((containerHeight / this.tileSize) / 2) + 1;
 
         // Загружаем тайлы
         for (let x = centerTileX - tilesX; x <= centerTileX + tilesX; x++) {
@@ -103,6 +90,7 @@ class KartaJS {
 
         this.updateMarkersPosition();
         this.panBy();
+        this.clearOldTiles();
     }
 
     loadTile(x, y, z) {
@@ -136,24 +124,17 @@ class KartaJS {
             .replace('{y}', y) : '';
 
         tile.style.backgroundColor = 'transparent';
-        tile.style.border = '1px solid #ddd';
         if (url) {
             img.src = url;
             this.queuedTiles++;
             img.onload = () => {
-                if (!this.options.showGrid) {
-                    tile.style.border = '';
-                }
-
                 tile.style.backgroundImage = `url(${url})`;
                 tile.style.backgroundSize = 'cover';
                 this.queuedTiles--;
-                this.clearOldTiles();
             };
             img.onerror = () => {
                 console.warn('Failed to load tile:', url);
                 this.queuedTiles--;
-                this.clearOldTiles();
             };
         }
 
@@ -162,16 +143,21 @@ class KartaJS {
     }
 
     clearOldTiles() {
-        this.tiles.forEach((tile, key, currentMap) => {
-            const delta = Math.abs(parseInt(tile.getAttribute('zoom')) - this.getZoom());
-            if (
-                (delta === 1 && this.queuedTiles === 0) // Remove from neighbour layer
-                || (delta > 1) // Remove from far layer
-            ) {
+        clearTimeout(this.clearTimer);
+        this.clearTimer = setTimeout(() => {
+            this.tiles.forEach((tile, key, currentMap) => {
+                const delta = Math.abs(parseInt(tile.getAttribute('zoom')) - this.getZoom());
+                if (delta === 0) {
+                    return
+                }
+                if (delta === 1 && this.queuedTiles > 0) {
+                    return;
+                }
+
                 tile.remove();
                 currentMap.delete(key);
-            }
-        });
+            });
+        }, 300);
     }
 
     setupEvents() {
@@ -221,6 +207,12 @@ class KartaJS {
                     break;
                 case 'ArrowDown':
                     this.panBy(0, -10);
+                    break;
+                case '+':
+                    this.zoomIn();
+                    break;
+                case '-':
+                    this.zoomOut();
                     break;
             }
         });
@@ -324,14 +316,32 @@ class KartaJS {
         this.currentOffset.x += deltaX;
         this.currentOffset.y += deltaY;
 
-        this.tilesContainer.style.left = this.currentOffset.x + 'px';
-        this.tilesContainer.style.top = this.currentOffset.y + 'px';
+        // Обновляем позиции всех тайлов
+        this.tiles.forEach((tile, key) => {
+            const [z, x, y] = key.split('/').map(Number);
+            const zoomDelta = this.getZoom() - z;
 
-        this.markersContainer.style.left = this.currentOffset.x + 'px';
-        this.markersContainer.style.top = this.currentOffset.y + 'px';
+            let multiplier = (this.getZoom() > z) ? 2 : 0.5;
 
-        // Обновляем координаты центра карты
+            if (zoomDelta === 0) {
+                multiplier = 1;
+            }
+
+            multiplier = Math.pow(multiplier, Math.abs(this.getZoom() - z));
+
+            const offsetX = x * this.tileSize * multiplier + this.currentOffset.x;
+            const offsetY = y * this.tileSize * multiplier + this.currentOffset.y;
+
+            // const offsetX = x * this.tileSize + this.currentOffset.x;
+            // const offsetY = y * this.tileSize + this.currentOffset.y;
+
+            tile.style.left = offsetX + 'px';
+            tile.style.top = offsetY + 'px';
+        });
+
+        // Обновляем центр карты и маркеры
         this.updateCenterFromOffset();
+        this.updateMarkersPosition();
     }
 
     /**
@@ -362,30 +372,37 @@ class KartaJS {
             return;
         }
 
-        const multiplier = newZoom > this.options.zoom ? 2 : 0.5;
+        let multiplier = newZoom > this.options.zoom ? 2 : 0.5;
         this.options.zoom = newZoom;
 
         // Update zoom-buttons state (enabled/disabled)
         this.zoomInBtn.disabled = newZoom >= this.options.maxZoom;
         this.zoomOutBtn.disabled = newZoom <= this.options.minZoom;
 
-        // При прокрутке колеса мыши, центруем карту по координатам мыши.
+        // Centering map by mouse position
         if (byMouse) {
             this.setCenter([this.lastMousePos.lat, this.lastMousePos.lng]);
         } else {
             this.setCenter(this.getCenter());
         }
 
-        // Resize existing tiles before loading new ones
-        this.tiles.forEach(tile => {
-            tile.style.left = (parseInt(tile.style.left) * multiplier) + 'px';
-            tile.style.top = (parseInt(tile.style.top) * multiplier) + 'px';
-            tile.style.width = (parseInt(tile.style.width) * multiplier) + 'px';
-            tile.style.height = (parseInt(tile.style.height) * multiplier) + 'px';
-        });
-
-        this.panBy();
         this.updateMarkersPosition();
+
+        // Resize existing tiles before loading new ones
+        this.tiles.forEach((tile, key) => {
+            const [z, x, y] = key.split('/').map(Number);
+
+            if (z === this.getZoom()) {
+                multiplier = 1;
+            }
+
+            const offsetX = x * this.tileSize * multiplier * Math.abs(this.getZoom() - z) + this.currentOffset.x;
+            const offsetY = y * this.tileSize * multiplier * Math.abs(this.getZoom() - z) + this.currentOffset.y;
+            tile.style.left = offsetX + 'px';
+            tile.style.top = offsetY + 'px';
+            tile.style.width = (this.tileSize * Math.pow(multiplier, Math.abs(this.getZoom() - z))) + 'px';
+            tile.style.height = (this.tileSize * Math.pow(multiplier, Math.abs(this.getZoom() - z))) + 'px';
+        });
 
         // "setTimeout" is used to skip unnecessary levels when zooming quickly
         setTimeout(() => {
@@ -602,9 +619,17 @@ class Marker {
         }
 
         const point = this.map.latLngToPoint(this.lat, this.lng, this.map.getZoom());
+        const centerPoint = this.map.latLngToPoint(
+            this.map.options.center[0],
+            this.map.options.center[1],
+            this.map.options.zoom
+        );
 
-        this.element.style.left = point.x + 'px';
-        this.element.style.top = point.y + 'px';
+        const offsetX = point.x - centerPoint.x + (this.map.container.offsetWidth / 2);
+        const offsetY = point.y - centerPoint.y + (this.map.container.offsetHeight / 2);
+
+        this.element.style.left = offsetX + 'px';
+        this.element.style.top = offsetY + 'px';
     }
 
     showPopup() {
@@ -618,4 +643,3 @@ class Marker {
         }
     }
 }
-
