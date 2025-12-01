@@ -66,11 +66,7 @@ class KartaJS {
      * Загружает новые тайлы, которые попадают в область видимости
      */
     loadTiles() {
-        const centerPoint = this.latLngToPoint(
-            this.options.center[0],
-            this.options.center[1],
-            this.options.zoom
-        );
+        const centerPoint = this.latLngToPoint(...this.options.center, this.options.zoom);
         // Вычисляем видимую область
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
@@ -117,7 +113,7 @@ class KartaJS {
             this.options.tileLayer.subdomains[Math.abs(x + y) % this.options.tileLayer.subdomains.length] :
             'a';
 
-        var maxTileNum = Math.pow(2, z);
+        let maxTileNum = Math.pow(2, z);
         const url = (x >= 0 && y >= 0 && x < maxTileNum && y < maxTileNum) ? this.options.tileLayer.url
             .replace('{s}', subdomain)
             .replace('{z}', z)
@@ -364,7 +360,6 @@ class KartaJS {
             return;
         }
 
-        let multiplier = newZoom > this.options.zoom ? 2 : 0.5;
         this.options.zoom = newZoom;
 
         // Update zoom-buttons state (enabled/disabled)
@@ -383,10 +378,8 @@ class KartaJS {
         // Resize existing tiles before loading new ones
         this.tiles.forEach((tile, key) => {
             const [z, x, y] = key.split('/').map(Number);
-
-            if (z === this.getZoom()) {
-                multiplier = 1;
-            }
+            const zoomDelta = this.getZoom() - z;
+            const multiplier = Math.pow(2, zoomDelta);
 
             const offsetX = x * this.tileSize * multiplier * Math.abs(this.getZoom() - z) + this.currentOffset.x;
             const offsetY = y * this.tileSize * multiplier * Math.abs(this.getZoom() - z) + this.currentOffset.y;
@@ -425,7 +418,7 @@ class KartaJS {
         this.markerManager.clearMarkers();
     }
 
-    setCenter(latlng) {
+    setCenter(latlng = [0, 0]) {
         this.options.center = latlng;
         this.calcOffset(this.options.center);
     }
@@ -434,11 +427,11 @@ class KartaJS {
         return [...this.options.center];
     }
 
-    calcOffset(latlng) {
-        var lat = latlng[0];
-        var lng = latlng[1];
-        var rect = this.container.getBoundingClientRect();
-        var pnt = this.latLngToPoint(
+    calcOffset(latlng = [0, 0]) {
+        const lat = latlng[0];
+        const lng = latlng[1];
+        const rect = this.container.getBoundingClientRect();
+        const pnt = this.latLngToPoint(
             lat,
             lng,
             this.options.zoom
@@ -455,7 +448,11 @@ class KartaJS {
     }
 
     // Правильная проекция Меркатора
-    latLngToPoint(lat, lng, zoom) {
+    latLngToPoint(lat, lng, zoom = -1) {
+        if (zoom === -1) {
+            zoom = this.getZoom();
+        }
+
         const scale = 256 * Math.pow(2, zoom);
         const latRad = this.degreesToRadians(lat);
 
@@ -469,8 +466,8 @@ class KartaJS {
         return {x, y};
     }
 
-    pointToLatLng(x, y, zoom = 0) {
-        if (zoom === 0) {
+    pointToLatLng(x, y, zoom = -1) {
+        if (zoom === -1) {
             zoom = this.getZoom();
         }
 
@@ -524,8 +521,14 @@ class KartaJS {
         this.lastMousePos.lng = coords.lng;
     }
 
+    showPopup(content) {
+        this.popup.innerHTML = content;
+        this.popupContainer.style.display = 'grid';
+    }
+
     hidePopup() {
         this.popupContainer.style.display = 'none';
+        this.popup.innerHTML = '';
     }
 
     getTouchDistance(touches) {
@@ -626,8 +629,7 @@ class Marker {
     }
 
     showPopup() {
-        this.map.popup.innerHTML = this.popup;
-        this.map.popupContainer.style.display = 'grid';
+        this.map.showPopup(this.popup);
     }
 
     remove() {
