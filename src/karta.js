@@ -1,3 +1,4 @@
+/*! KartaJS v0.0 | MIT License | github.com/All4DK/KartaJS */
 class KartaJS {
     constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);
@@ -17,12 +18,12 @@ class KartaJS {
         this.tileSize = 256;
         this.isDragging = false;
         this.lastMousePos = {x: 0, y: 0, lat: 0, lng: 0};
-        this.calcOffset(this.options.center);
         this.clearTimer = null;
         this.loadTimer = null;
         this.tiles = new Map(); // Tiles cache
         this.queuedTiles = 0; // Counting tiles in queue or while loading
         this.markerManager = new MarkerManager(this);
+        this.calcOffset(this.options.center);
         this.init();
     }
 
@@ -66,22 +67,22 @@ class KartaJS {
      * Загружает новые тайлы, которые попадают в область видимости
      */
     loadTiles() {
-        const centerPoint = this.latLngToPoint(...this.options.center, this.options.zoom);
-        // Вычисляем видимую область
+        const centerPoint = this.latLngToPoint(...this.options.center);
+        // Calc visible area
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
 
         const centerTileX = Math.floor(centerPoint.x / this.tileSize);
         const centerTileY = Math.floor(centerPoint.y / this.tileSize);
 
-        // Количество тайлов вокруг центра
+        // Tiles count around the center point
         const tilesX = Math.ceil((containerWidth / this.tileSize) / 2) + 1;
         const tilesY = Math.ceil((containerHeight / this.tileSize) / 2) + 1;
 
-        // Загружаем тайлы
+        // Loading tiles
         for (let x = centerTileX - tilesX; x <= centerTileX + tilesX; x++) {
             for (let y = centerTileY - tilesY; y <= centerTileY + tilesY; y++) {
-                this.loadTile(x, y, this.options.zoom);
+                this.loadTile(x, y, this.getZoom());
             }
         }
 
@@ -93,7 +94,6 @@ class KartaJS {
     loadTile(x, y, z) {
         const tileKey = `${z}/${x}/${y}`;
 
-        // Проверяем, не загружен ли уже тайл
         if (this.tiles.has(tileKey)) {
             return;
         }
@@ -428,14 +428,8 @@ class KartaJS {
     }
 
     calcOffset(latlng = [0, 0]) {
-        const lat = latlng[0];
-        const lng = latlng[1];
         const rect = this.container.getBoundingClientRect();
-        const pnt = this.latLngToPoint(
-            lat,
-            lng,
-            this.options.zoom
-        );
+        const pnt = this.latLngToPoint(...latlng);
         this.currentOffset = {x: Math.floor(rect.width / 2) - pnt.x, y: Math.floor(rect.height / 2) - pnt.y}
     }
 
@@ -536,6 +530,28 @@ class KartaJS {
         const dy = touches[0].clientY - touches[1].clientY;
         return Math.sqrt(dx * dx + dy * dy);
     }
+
+    /**
+     * Возвращает bounding box видимой области карты
+     * @returns {Object} Объект с координатами углов {north, south, east, west}
+     */
+    getBounds() {
+        const containerWidth = this.container.offsetWidth;
+        const containerHeight = this.container.offsetHeight;
+
+        // Left-top
+        const northWest = this.pointToLatLng(-map.currentOffset['x'], -map.currentOffset['y']);
+
+        // Right-bottom
+        const southEast = this.pointToLatLng(containerWidth - map.currentOffset['x'], containerHeight - map.currentOffset['y']);
+
+        return {
+            north: Math.min(northWest.lat, 90),
+            south: Math.max(southEast.lat, -90),
+            east: Math.min(southEast.lng, 180),
+            west: Math.max(northWest.lng, -180),
+        };
+    }
 }
 
 class MarkerManager {
@@ -615,11 +631,7 @@ class Marker {
         }
 
         const point = this.map.latLngToPoint(this.lat, this.lng, this.map.getZoom());
-        const centerPoint = this.map.latLngToPoint(
-            this.map.options.center[0],
-            this.map.options.center[1],
-            this.map.options.zoom
-        );
+        const centerPoint = this.map.latLngToPoint(...this.map.options.center);
 
         const offsetX = point.x - centerPoint.x + (this.map.container.offsetWidth / 2);
         const offsetY = point.y - centerPoint.y + (this.map.container.offsetHeight / 2);
