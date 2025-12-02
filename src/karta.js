@@ -622,7 +622,7 @@ class Marker {
                 e.stopPropagation();
                 this.showPopup();
             });
-            this.element.addEventListener('touchstart', (e) => {
+            this.element.addEventListener('touchend', (e) => {
                 e.stopPropagation();
                 this.showPopup();
             });
