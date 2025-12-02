@@ -385,12 +385,9 @@ class KartaJS {
             const zoomDelta = this.getZoom() - z;
             const multiplier = Math.pow(2, zoomDelta);
 
-            const offsetX = x * this.tileSize * multiplier * Math.abs(this.getZoom() - z) + this.currentOffset.x;
-            const offsetY = y * this.tileSize * multiplier * Math.abs(this.getZoom() - z) + this.currentOffset.y;
-            tile.style.left = offsetX + 'px';
-            tile.style.top = offsetY + 'px';
-            tile.style.width = (this.tileSize * Math.pow(multiplier, Math.abs(this.getZoom() - z))) + 'px';
-            tile.style.height = (this.tileSize * Math.pow(multiplier, Math.abs(this.getZoom() - z))) + 'px';
+            tile.style.left = (x * this.tileSize * multiplier + this.currentOffset.x) + 'px';
+            tile.style.top = (y * this.tileSize * multiplier + this.currentOffset.y) + 'px';
+            tile.style.transform = `scale(${multiplier})`;
         });
 
         // "setTimeout" is used to skip unnecessary levels when zooming quickly
@@ -544,10 +541,10 @@ class KartaJS {
         const containerHeight = this.container.offsetHeight;
 
         // Left-top
-        const northWest = this.pointToLatLng(-map.currentOffset['x'], -map.currentOffset['y']);
+        const northWest = this.pointToLatLng(-this.currentOffset['x'], -this.currentOffset['y']);
 
         // Right-bottom
-        const southEast = this.pointToLatLng(containerWidth - map.currentOffset['x'], containerHeight - map.currentOffset['y']);
+        const southEast = this.pointToLatLng(containerWidth - this.currentOffset['x'], containerHeight - this.currentOffset['y']);
 
         return {
             north: Math.min(northWest.lat, 90),
