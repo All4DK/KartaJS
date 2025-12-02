@@ -587,7 +587,8 @@ class Marker {
         this.lng = options.lng;
         this.title = options.title || '';
         this.color = options.color || '#38F';
-        this.popup = options.popup || null;
+        this.popup = options.popup || '';
+        this.overlayPopup = options.overlayPopup || '';
         this.ico = options.ico || null;
         this.cssClass = options.cssClass || 'simple';
 
@@ -596,11 +597,10 @@ class Marker {
     }
 
     createElement() {
+        this.element = document.createElement('div');
         if (this.ico) {
-            this.element = document.createElement('img');
-            this.element.src = this.ico;
+            this.element.style.backgroundImage = `url("${this.ico}")`;
         } else {
-            this.element = document.createElement('div');
             this.element.style.background = `${this.color}`;
         }
 
@@ -613,7 +613,7 @@ class Marker {
         this.map.markersContainer.appendChild(this.element);
 
         // Обработчик клика
-        if (this.popup) {
+        if (this.popup || this.overlayPopup) {
             this.element.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.showPopup();
@@ -641,7 +641,18 @@ class Marker {
     }
 
     showPopup() {
-        this.map.showPopup(this.popup);
+        if (this.overlayPopup) {
+            this.map.showPopup(this.overlayPopup);
+            return;
+        }
+
+        if (this.element.innerHTML) {
+            this.element.innerHTML = '';
+            this.element.style.zIndex = 0;
+        } else {
+            this.element.innerHTML = '<div class="popup" style="border-color: ' + this.color + '">' + this.popup + '</div>';
+            this.element.style.zIndex = 1;
+        }
     }
 
     remove() {
