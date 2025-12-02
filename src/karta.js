@@ -22,8 +22,8 @@ class KartaJS {
         this.clearTimer = null;
         this.loadTimer = null;
         this.tiles = new Map(); // Tiles cache
+        this.markers = new Map(); // Markers data
         this.queuedTiles = 0; // Counting tiles in queue or while loading
-        this.markerManager = new MarkerManager(this);
         this.calcOffset(this.options.center);
         this.init();
     }
@@ -385,9 +385,12 @@ class KartaJS {
             const zoomDelta = this.getZoom() - z;
             const multiplier = Math.pow(2, zoomDelta);
 
-            tile.style.left = (x * this.tileSize * multiplier + this.currentOffset.x) + 'px';
-            tile.style.top = (y * this.tileSize * multiplier + this.currentOffset.y) + 'px';
-            tile.style.transform = `scale(${multiplier})`;
+            const offsetX = x * this.tileSize * multiplier * Math.abs(zoomDelta) + this.currentOffset.x;
+            const offsetY = y * this.tileSize * multiplier * Math.abs(zoomDelta) + this.currentOffset.y;
+            tile.style.left = offsetX + 'px';
+            tile.style.top = offsetY + 'px';
+            tile.style.width = (this.tileSize * multiplier) + 'px';
+            tile.style.height = (this.tileSize * multiplier) + 'px';
         });
 
         // "setTimeout" is used to skip unnecessary levels when zooming quickly
@@ -402,21 +405,9 @@ class KartaJS {
     }
 
     updateMarkersPosition() {
-        this.markerManager.markers.forEach(marker => {
+        this.markers.forEach(marker => {
             marker.updatePosition();
         });
-    }
-
-    addMarker(options) {
-        return this.markerManager.addMarker(options);
-    }
-
-    removeMarker(marker) {
-        this.markerManager.removeMarker(marker);
-    }
-
-    clearMarkers() {
-        this.markerManager.clearMarkers();
     }
 
     setCenter(latlng = [0, 0]) {
@@ -553,36 +544,32 @@ class KartaJS {
             west: Math.max(northWest.lng, -180),
         };
     }
-}
 
-class MarkerManager {
-    constructor(map) {
-        this.map = map;
-        this.markers = [];
-    }
-
+    // MARKERS
     addMarker(options) {
-        const marker = new Marker(this.map, options);
-        this.markers.push(marker);
-        return marker;
+        const marker = new Marker(this, options);
+        this.markers.set(marker.getId(), marker);
+
+        return marker.getId();
     }
 
-    removeMarker(marker) {
-        const index = this.markers.indexOf(marker);
-        if (index > -1) {
-            marker.remove();
-            this.markers.splice(index, 1);
-        }
+    removeMarker(id) {
+        this.markers.get(id).remove();
+        this.markers.delete(id);
+
+        return id;
     }
 
     clearMarkers() {
         this.markers.forEach(marker => marker.remove());
-        this.markers = [];
+        this.markers.clear();
     }
+
 }
 
 class Marker {
     constructor(map, options) {
+        this.id = options.id || this.generateId();
         this.map = map;
         this.lat = options.lat;
         this.lng = options.lng;
@@ -626,6 +613,10 @@ class Marker {
         }
     }
 
+    getId() {
+        return this.id;
+    }
+
     updatePosition() {
         if (!this.element) {
             return;
@@ -664,5 +655,11 @@ class Marker {
         if (this.element && this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
+    }
+
+    generateId() {
+        const timestamp = Date.now().toString(36).slice(4);
+        const random = Math.random().toString(36).substring(2,6);
+        return `id_${timestamp}_${random}`;
     }
 }
