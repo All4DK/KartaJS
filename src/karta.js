@@ -13,6 +13,7 @@ class KartaJS {
                 subdomains: ['a', 'b', 'c']
             },
             showLatlngMonitor: (typeof options.showLatlngMonitor !== 'undefined') && options.showLatlngMonitor,
+            interactive: (typeof options.interactive !== 'undefined') ? options.interactive : true,
         };
 
         this.tileSize = 256;
@@ -30,7 +31,10 @@ class KartaJS {
     init() {
         this.createContainer();
         this.loadTiles();
-        this.setupEvents();
+
+        if (this.options.interactive) {
+            this.setupEvents();
+        }
     }
 
     createContainer() {
@@ -40,11 +44,11 @@ class KartaJS {
         this.container.innerHTML = `
             <div class="kjs-tiles-container"></div>
             <div class="kjs-markers-container"></div>
-            <div class="kjs-controls">
-                <button class="kjs-zoom-in">▲</button>
-                <button class="kjs-zoom-out">▼</button>
-            </div>
             <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + ` | <a href="https://github.com/All4DK/KartaJS" target="_blank">KartaJS</a></div>`;
+
+        if (this.options.interactive) {
+            this.container.innerHTML += '<div class="kjs-controls"><button class="kjs-zoom-in">▲</button><button class="kjs-zoom-out">▼</button></div>';
+        }
 
         if (this.options.showLatlngMonitor) {
             this.container.innerHTML += '<div class="kjs-current-latlng">N:0.00 E:0.00</div>';
@@ -641,8 +645,12 @@ class Marker {
     }
 
     showPopup() {
-        if (this.overlayPopup) {
+        if (this.overlayPopup && this.map.options.interactive) {
             this.map.showPopup(this.overlayPopup);
+            return;
+        }
+
+        if (!this.popup) {
             return;
         }
 
