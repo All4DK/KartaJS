@@ -13,8 +13,6 @@ KartaJS is a minimal yet powerful mapping library built with pure JavaScript. No
 
     🎯 Simple API - Intuitive and easy to learn
 
-    🖱️ Smooth interactions - Dragging, mouse wheel zoom, touch support
-
     📍 Custom markers - Colors, icons, CSS classes, HTML popups
 
     🎨 Flexible styling - CSS-based customization
@@ -22,10 +20,6 @@ KartaJS is a minimal yet powerful mapping library built with pure JavaScript. No
     📱 Mobile friendly - Touch gestures, pinch-to-zoom
 
     🗂️ Multiple tile layers - OSM, CartoDB, OpenTopoMap support
-
-    📱 Touch friendly - Mobile-ready with touch gestures
-
-    ⌨️ Keyboard navigation - Arrow keys, ESC to close popups
 
 
 ## 🚀 Quick Start
