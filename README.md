@@ -58,8 +58,8 @@ KartaJS is a minimal yet powerful mapping library built with pure JavaScript. No
         // Marker with green icon and popup
         map.addMarker({title: 'Russia - Moscow Kremlin', lat: 55.7532, lng: 37.6187, color: 'green', popup: 'Moscow the capital of Russia'});
 
-        // Marker with icon image
-        map.addMarker({title: 'Russia - Hermitage Museum', lat: 59.9405, lng: 30.3137, ico: 'img/museum.png', cssClass: 'icon', popup: 'Museum'});
+        // Marker with opened popup
+        map.addMarker({title: 'Spain - Sagrada Familia', lat: 41.403630, lng: 2.174360, popup: 'Spain - Sagrada Familia', showPopup: true});
     </script>
 </body>
 </html>
