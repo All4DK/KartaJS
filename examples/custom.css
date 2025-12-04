@@ -1,0 +1,11 @@
+.kjs-markers-container .marker.icon {
+    width: 32px;
+    height: 37px;
+    transform: translate(-50%, -100%);
+    background-repeat: no-repeat;
+    background-position: bottom;
+}
+
+.kjs-markers-container .marker.icon .popup {
+    transform: translate(-30px, 35px);
+}

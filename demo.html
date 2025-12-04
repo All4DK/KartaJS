@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charSet="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KartaJS Demo</title>
+    <style>
+        body {
+            width: 100%;
+            padding: 5px 0;
+            margin: 0;
+        }
+
+        #map {
+            width: 100vw;
+            height: 70vh;
+            border: 1px solid #ccc;
+        }
+    </style>
+
+    <script src="src/karta.js" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="src/karta.css">
+</head>
+<body>
+<h1>KartaJS Demo</h1>
+<div id="map"></div>
+
+<script>
+    new KartaJS('map', {
+        zoom: 18,
+        markers: [
+            {title: 'Bank', lat: 59.9078, lng: 10.7429, color: 'orange', popup: 'The bank', showPopup: true},
+            {title: 'Office', lat: 59.909, lng: 10.7452, color: 'green', popup: 'The office'},
+            {title: 'Customer', lat: 59.9084, lng: 10.7429, popup: 'Customer'},
+        ],
+    });
+</script>
+</body>
+</html>
