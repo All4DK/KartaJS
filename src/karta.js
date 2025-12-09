@@ -1,6 +1,169 @@
 /*! KartaJS v0.0 | MIT License | github.com/All4DK/KartaJS */
-class KartaJS {
+class EventEmitter {
+    constructor() {
+        this._events = new Map();
+    }
+
+    /**
+     * Подписка на событие
+     * @param {string} event - Имя события
+     * @param {Function} fn - Функция-обработчик
+     * @param {Object} options - Дополнительные опции
+     * @param {boolean} options.once - Вызвать только один раз
+     * @returns {Function} Функция для отписки
+     */
+    on(event, fn, options = {}) {
+        if (!this._events.has(event)) {
+            this._events.set(event, []);
+        }
+
+        const listener = {
+            fn,
+            once: !!options.once,
+            context: options.context || this
+        };
+
+        this._events.get(event).push(listener);
+
+        // Возвращаем функцию для отписки
+        return () => this.off(event, fn);
+    }
+
+    /**
+     * Подписка на событие (только один раз)
+     * @param {string} event - Имя события
+     * @param {Function} fn - Функция-обработчик
+     * @returns {Function} Функция для отписки
+     */
+    once(event, fn) {
+        return this.on(event, fn, { once: true });
+    }
+
+    /**
+     * Отписка от события
+     * @param {string} event - Имя события
+     * @param {Function} fn - Функция для удаления (если не указана - удаляем все)
+     */
+    off(event, fn) {
+        if (!this._events.has(event)) return;
+
+        if (!fn) {
+            // Удаляем все обработчики события
+            this._events.delete(event);
+            return;
+        }
+
+        const listeners = this._events.get(event);
+        const filtered = listeners.filter(listener => listener.fn !== fn);
+
+        if (filtered.length === 0) {
+            this._events.delete(event);
+        } else {
+            this._events.set(event, filtered);
+        }
+    }
+
+    /**
+     * Генерация события
+     * @param {string} event - Имя события
+     * @param {*} data - Данные события
+     * @returns {boolean} Были ли обработчики
+     */
+    emit(event, data = {}) {
+        if (!this._events.has(event)) return false;
+
+        const listeners = this._events.get(event).slice(); // Копируем массив
+        let hasListeners = false;
+
+        for (let i = 0; i < listeners.length; i++) {
+            const listener = listeners[i];
+
+            try {
+                listener.fn.call(listener.context, {
+                    type: event,
+                    target: this,
+                    data: data,
+                    timestamp: Date.now()
+                });
+                hasListeners = true;
+            } catch (err) {
+                console.error(`Error in event handler for "${event}":`, err);
+            }
+
+            // Удаляем одноразовые обработчики
+            if (listener.once) {
+                this.off(event, listener.fn);
+            }
+        }
+
+        return hasListeners;
+    }
+
+    /**
+     * Удаление всех подписок
+     */
+    removeAllListeners() {
+        this._events.clear();
+    }
+
+    /**
+     * Получение количества обработчиков для события
+     * @param {string} event - Имя события
+     * @returns {number}
+     */
+    listenerCount(event) {
+        if (!this._events.has(event)) return 0;
+        return this._events.get(event).length;
+    }
+}
+
+class KartaJS extends EventEmitter {
+    /**
+     * Константы событий карты
+     * @readonly
+     * @enum {string}
+     */
+    static EVENTS = Object.freeze({
+        /** Карта инициализирована, API доступно */
+        READY: 'ready',
+        /** Первая порция тайлов загружена */
+        LOAD: 'load',
+        /** Клик по карте */
+        CLICK: 'click',
+        /** Двойной клик по карте */
+        DBLCLICK: 'dblclick',
+        /** Начало перемещения карты */
+        MOVESTART: 'movestart',
+        /** Карта перемещается */
+        MOVE: 'move',
+        /** Перемещение карты завершено */
+        MOVEEND: 'moveend',
+        /** Начало события прикосновения */
+        TOUCHSTART: 'touchstart',
+        /** Окончание события прикосновения */
+        TOUCHEND: 'touchend',
+        /** Перетаскивание нажатием на экран */
+        TOUCHMOVE: 'touchmove',
+        /** Начало изменения масштаба */
+        ZOOMSTART: 'zoomstart',
+        /** Масштаб изменяется */
+        ZOOM: 'zoom',
+        /** Изменение масштаба завершено */
+        ZOOMEND: 'zoomend',
+        /** Вид карты полностью обновлён */
+        VIEWRESET: 'viewreset',
+        /** Нажатие клавиши */
+        KEYUP: 'keyup',
+        /** Загружен тайл */
+        TILELOAD: 'tileload',
+        /** Ошибка загрузки тайла */
+        TILEERROR: 'tileerror',
+        /** Отпущена нажатая кнопка мыши */
+        MOUSEUP: 'mouseup',
+    });
+
     constructor(containerId, options = {}) {
+        super();
         this.container = document.getElementById(containerId);
         this.options = {
             center: options.center || [0, 0],
@@ -25,6 +188,7 @@ class KartaJS {
         this.loadTimer = null;
         this.tiles = new Map(); // Tiles cache
         this.markers = new Map(); // Markers data
+        this.overlayObjects = new Map(); // Overlay objects data
         this.queuedTiles = 0; // Counting tiles in queue or while loading
         this.init();
         this.setCenter(this.options.center);
@@ -41,6 +205,7 @@ class KartaJS {
                 this.setCenter([autoCenter.lat/options.markers.length, autoCenter.lng/options.markers.length]);
             }
         }
+        this.emit(KartaJS.EVENTS.READY, {center: this.centerPoint});
     }
 
     init() {
@@ -59,6 +224,7 @@ class KartaJS {
         this.container.innerHTML = `
             <div class="kjs-tiles-container"></div>
             <div class="kjs-markers-container"></div>
+            <div class="kjs-overlay-container"></div>
             <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + ` | <a href="https://github.com/All4DK/KartaJS" target="_blank">KartaJS</a></div>`;
 
         if (this.options.interactive) {
@@ -75,6 +241,7 @@ class KartaJS {
 
         this.tilesContainer = this.container.querySelector('.kjs-tiles-container');
         this.markersContainer = this.container.querySelector('.kjs-markers-container');
+        this.overlayContainer = this.container.querySelector('.kjs-overlay-container');
         this.popupContainer = this.container.querySelector('.kjs-popup-container');
         this.popup = this.container.querySelector('.popup');
         this.currentLatlng = this.container.querySelector('.kjs-current-latlng');
@@ -104,7 +271,7 @@ class KartaJS {
             }
         }
 
-        this.updateMarkersPosition();
+        this.updateObjectsPosition();
         this.panBy();
         this.clearOldTiles();
     }
@@ -149,6 +316,7 @@ class KartaJS {
             tile.style.backgroundSize = 'cover';
             this.queuedTiles--;
             this.clearOldTiles();
+            this.emit(KartaJS.EVENTS.TILELOAD, {url: img.src});
         };
         img.onerror = () => {
             console.warn('Failed to load tile:', url);
@@ -156,6 +324,7 @@ class KartaJS {
             this.clearOldTiles();
             tile.remove();
             this.tiles.delete(tileKey);
+            this.emit(KartaJS.EVENTS.TILEERROR, {url: img.src});
         };
         this.tilesContainer.appendChild(tile);
         this.tiles.set(tileKey, tile);
@@ -234,6 +403,7 @@ class KartaJS {
                     this.zoomOut();
                     break;
             }
+            this.emit(KartaJS.EVENTS.KEYUP, {key: e.key});
         });
     }
 
@@ -254,9 +424,13 @@ class KartaJS {
     }
 
     onMouseUp() {
-        this.isDragging = false;
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.emit(KartaJS.EVENTS.MOVEEND, {center: this.centerPoint});
+        }
         this.container.style.cursor = 'default';
 
+        this.emit(KartaJS.EVENTS.MOUSEUP);
         this.loadTiles();
     }
 
@@ -286,6 +460,7 @@ class KartaJS {
 
         this.setMousePos(coords);
         this.updateLatlngMonitor(coords);
+        this.emit(KartaJS.EVENTS.TOUCHSTART, {isDragging: this.isDragging, isZooming: this.isZooming});
     }
 
     onTouchMove(e) {
@@ -309,10 +484,17 @@ class KartaJS {
                 this.startTouchDistance = this.lastTouchDistance
             }
         }
+
+        this.emit(KartaJS.EVENTS.TOUCHMOVE, {center: this.centerPoint});
     }
 
     onTouchEnd() {
-        this.isDragging = false;
+        if (this.isDragging) {
+            this.emit(KartaJS.EVENTS.MOVEEND, {center: this.centerPoint});
+            this.emit(KartaJS.EVENTS.TOUCHEND);
+            this.isDragging = false;
+        }
+
         this.isZooming = false;
 
         this.loadTiles();
@@ -353,7 +535,9 @@ class KartaJS {
 
         // Обновляем центр карты и маркеры
         this.updateCenterFromOffset();
-        this.updateMarkersPosition();
+        this.updateObjectsPosition();
+
+        this.emit(KartaJS.EVENTS.MOVE, {center: this.centerPoint});
     }
 
     /**
@@ -387,7 +571,10 @@ class KartaJS {
             this.setCenter(this.getCenter());
         }
 
-        this.updateMarkersPosition();
+        this.emit(KartaJS.EVENTS.ZOOMSTART, {center: this.centerPoint});
+
+        // Updating geo-based objects on all layers
+        this.updateObjectsPosition();
 
         // Resize existing tiles before loading new ones
         this.tiles.forEach((tile, key) => {
@@ -407,6 +594,7 @@ class KartaJS {
         clearTimeout(this.loadTimer);
         this.loadTimer = setTimeout(() => {
             this.loadTiles();
+            this.emit(KartaJS.EVENTS.ZOOMEND, {center: this.centerPoint});
         }, 500);
     }
 
@@ -422,7 +610,8 @@ class KartaJS {
         this.setZoom(this.getZoom() - 1, byMouse);
     }
 
-    updateMarkersPosition() {
+    // Update position for all geo-based objects ao all layers
+    updateObjectsPosition() {
         if (this.updatingMarkers) {
             return;
         }
@@ -431,8 +620,8 @@ class KartaJS {
         requestAnimationFrame(() => {
             const bounds = this.getBounds();
             this.markers.forEach((marker) => {
-                if (marker.lat >= bounds.south && marker.lat <= bounds.north && marker.lng >= bounds.west && marker.lng <= bounds.east) {
-                    marker.updatePosition();
+                if (this.isObjectInBounds(marker, bounds)) {
+                    this.calcObjectPosition(marker);
                     marker.showOnMap();
                 } else {
                     marker.hideOnMap();
@@ -440,6 +629,30 @@ class KartaJS {
             });
             this.updatingMarkers = false;
         });
+    }
+
+    calcObjectPosition(object) {
+        if (!object.element) {
+            return;
+        }
+
+        if (!(object.cachePosition && object.cachePosition.zoom === this.getZoom())) {
+            object.cachePosition = this.latLngToPoint(object.getLat(), object.getLng(), this.getZoom());
+            object.cachePosition.zoom = this.getZoom();
+        }
+
+        const offsetX = object.cachePosition.x - this.centerPoint.x + (this.container.offsetWidth / 2);
+        const offsetY = object.cachePosition.y - this.centerPoint.y + (this.container.offsetHeight / 2);
+
+        object.setLeft(offsetX);
+        object.setTop(offsetY);
+    }
+
+    isObjectInBounds(object, bounds) {
+        return object.lat >= bounds.south &&
+            object.lat <= bounds.north &&
+            object.lng >= bounds.west &&
+            object.lng <= bounds.east;
     }
 
     setCenter(latlng = [0, 0]) {
@@ -600,10 +813,54 @@ class KartaJS {
 
 }
 
-class Marker {
-    constructor(map, options) {
-        this.id = options.id || this.generateId();
+class MapObject extends EventEmitter {
+    constructor(map) {
+        super();
+        this.element = {};
         this.map = map;
+    }
+
+    getLat() {
+        return this.lat;
+    }
+
+    getLng() {
+        return this.lng;
+    }
+
+    getTop() {
+        return parseInt(this.element.style.top);
+    }
+
+    setTop(value) {
+        return this.element.style.top = value + 'px';
+    }
+
+    getLeft() {
+        return parseInt(this.element.style.left);
+    }
+
+    setLeft(value) {
+        return this.element.style.left = value + 'px';
+    }
+
+    updatePosition() {
+        return this.map.calcObjectPosition(this);
+    }
+
+    hideOnMap() {
+        this.element.style.display = 'none';
+    }
+
+    showOnMap() {
+        this.element.style.display = 'block';
+    }
+}
+
+class Marker extends MapObject {
+    constructor(map, options) {
+        super(map);
+        this.id = options.id || this.generateId();
         this.lat = options.lat;
         this.lng = options.lng;
         this.title = options.title || '';
@@ -652,31 +909,6 @@ class Marker {
 
     getId() {
         return this.id;
-    }
-
-    updatePosition() {
-        if (!this.element) {
-            return;
-        }
-
-        if (!(this.cachePosition && this.cachePosition.zoom === this.map.getZoom())) {
-            this.cachePosition = this.map.latLngToPoint(this.lat, this.lng, this.map.getZoom());
-            this.cachePosition.zoom = this.map.getZoom();
-        }
-
-        const offsetX = this.cachePosition.x - this.map.centerPoint.x + (this.map.container.offsetWidth / 2);
-        const offsetY = this.cachePosition.y - this.map.centerPoint.y + (this.map.container.offsetHeight / 2);
-
-        this.element.style.left = offsetX + 'px';
-        this.element.style.top = offsetY + 'px';
-    }
-
-    hideOnMap() {
-        this.element.style.display = 'none';
-    }
-
-    showOnMap() {
-        this.element.style.display = 'block';
     }
 
     showPopup() {
