@@ -158,6 +158,10 @@ class KartaJS extends EventEmitter {
         TILELOAD: 'tileload',
         /** Ошибка загрузки тайла */
         TILEERROR: 'tileerror',
+        /** Нажата кнопка мыши */
+        MOUSEDOWN: 'mousedown',
+        /** Перемещение указателя */
+        MOUSEMOVE: 'mousemove',
         /** Отпущена нажатая кнопка мыши */
         MOUSEUP: 'mouseup',
     });
@@ -411,6 +415,8 @@ class KartaJS extends EventEmitter {
         e.preventDefault();
         this.isDragging = true;
         this.container.style.cursor = 'grabbing';
+
+        this.emit(KartaJS.EVENTS.MOUSEDOWN, this.lastMousePos);
     }
 
     onMouseMove(e) {
@@ -421,16 +427,18 @@ class KartaJS extends EventEmitter {
         if (this.isDragging) {
             this.panBy(coords.deltaX, coords.deltaY);
         }
+
+        this.emit(KartaJS.EVENTS.MOUSEMOVE, this.lastMousePos);
     }
 
-    onMouseUp() {
+    onMouseUp(e) {
         if (this.isDragging) {
             this.isDragging = false;
             this.emit(KartaJS.EVENTS.MOVEEND, {center: this.centerPoint});
         }
         this.container.style.cursor = 'default';
 
-        this.emit(KartaJS.EVENTS.MOUSEUP);
+        this.emit(KartaJS.EVENTS.MOUSEUP, this.lastMousePos);
         this.loadTiles();
     }
 
