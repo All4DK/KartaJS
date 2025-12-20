@@ -31,31 +31,16 @@
             center: [47, 10], // Center of the map
             zoom: 4,
             showLatlngMonitor: true, // Show mouse-pointers coordinates
-
-            // Tile examples
-            // tileLayer: {
-            //     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-            //     attribution: '© <a href="https://osm.org" target="_blank">OpenStreetMap</a> | © <a href="https://carto.com/" target="_blank">CartoDB</a> - Positron',
-            //     subdomains: ['a', 'b', 'c']
-            // }
-
-            // tileLayer: {
-            //     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-            //     attribution: '© <a href="https://osm.org" target="_blank">OpenStreetMap</a> | © <a href="https://carto.com/" target="_blank">CartoDB</a> - Dark Matter',
-            //     subdomains: ['a', 'b', 'c']
-            // }
-
-            // tileLayer: {
-            //     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-            //     attribution: '© <a href="https://osm.org" target="_blank">OpenStreetMap</a> | © <a href="https://opentopomap.org/" target="_blank">OpenTopoMap</a>',
-            //     subdomains: ['a', 'b', 'c']
-            // }
-
+            enableClusterManager: true,
+            clusterManager: {
+                maxZoom: 6,
+                gridSize: 75,
+            }
         });
 
         // Add markers
         map.addMarker({title: '0.00, 0.00', lat: 0, lng: 0, color: 'orange'});
-        map.addMarker({id: 1, title: 'Russia - Moscow Kremlin', lat: 55.7532, lng: 37.6187, popup: 'Moscow Kremlin — the historic fortified complex at the heart of Moscow. Official residence of the President, iconic red walls, cathedrals.', showPopup: true});
+        map.addMarker({id: 1, title: 'Russia - Moscow Kremlin', lat: 55.7532, lng: 37.6187, popup: 'Moscow Kremlin — the historic fortified complex at the heart of Moscow. Official residence of the President, iconic red walls, cathedrals.', showPopup: false});
         map.addMarker({id: 2, title: 'Russia - Hermitage Museum', lat: 59.9405, lng: 30.3137, color: '#22bb22', ico: 'img/museum.png', cssClass: 'icon', popup: 'Hermitage Museum — one of the world\'s largest museums in Saint Petersburg. Housed in the Winter Palace, vast collection of art and culture.'});
         map.addMarker({id: 3, title: 'Russia - Russky Bridge', lat: 43.0636, lng: 131.9084});
         map.addMarker({title: 'Canada - Niagara Falls', lat: 43.079810, lng: -79.074710, color: 'green', popup: '<h2 style="text-align: center;">Niagara Falls</h2><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/3Falls_Niagara.jpg/250px-3Falls_Niagara.jpg" style="float: left; margin: 0 5px 5px 0;width: 200px;"> Niagara Falls — a massive, powerful waterfall on the Canada-USA border. Famous for its immense flow, mist, and iconic horseshoe curve.'});
@@ -73,6 +58,15 @@
         map.addMarker({title: 'United Kingdom - Big Ben', lat: 51.500610, lng: -0.124610});
         map.addMarker({title: 'USA - Golden Gate Bridge', lat: 37.819928, lng: -122.478255});
         map.addMarker({title: 'USA - Statue of Liberty', lat: 40.689249, lng: -74.044500});
+
+        for (let i = 0; i < 20000; i++) {
+            let lat = (Math.random() * 170) - 85;
+            let lng = (Math.random() * 360) - 180;
+            map.addMarker({title: 'Marker #' + i, lat: lat, lng: lng});
+        }
+
+        map.showPopup('20,000 markers successfully added. Clustering is enabled.');
+
     </script>
 </body>
 </html>
