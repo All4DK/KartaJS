@@ -177,6 +177,8 @@ class KartaJS extends EventEmitter {
             },
             showLatlngMonitor: (typeof options.showLatlngMonitor !== 'undefined') && options.showLatlngMonitor,
             interactive: (typeof options.interactive !== 'undefined') ? options.interactive : true,
+            enableClusterManager: !!options.enableClusterManager,
+            clusterManager: options.clusterManager || {},
         };
 
         this.tileSize = 256;
@@ -195,6 +197,8 @@ class KartaJS extends EventEmitter {
         this.bounds = null;
         this.init();
         this.setCenter(this.options.center);
+        this.clusterManager = this.options.enableClusterManager ? new ClusterManager(this, this.options.clusterManager) : null;
+        this.visibleMarkers = [];
 
         // Обработка массива маркеров, пришедших на инициализацию
         if (options.markers && Array.isArray(options.markers)) {
@@ -338,7 +342,7 @@ class KartaJS extends EventEmitter {
             this.tiles.forEach((tile, key, currentMap) => {
                 const delta = Math.abs(parseInt(tile.getAttribute('zoom')) - this.getZoom());
                 if (delta === 0) {
-                    return
+                    return;
                 }
                 if (delta === 1 && this.queuedTiles > 0) {
                     return;
@@ -622,6 +626,8 @@ class KartaJS extends EventEmitter {
             const offsetY = y * this.tileSize * multiplier + this.currentOffset.y;
             tile.style.left = offsetX + 'px';
             tile.style.top = offsetY + 'px';
+            tile.style.width = (this.tileSize * multiplier) + 'px';
+            tile.style.height = (this.tileSize * multiplier) + 'px';
         });
 
         // Обновляем центр карты и маркеры
@@ -678,7 +684,6 @@ class KartaJS extends EventEmitter {
             const offsetY = y * this.tileSize * multiplier + this.currentOffset.y;
             tile.style.left = offsetX + 'px';
             tile.style.top = offsetY + 'px';
-
             tile.style.width = (this.tileSize * multiplier) + 'px';
             tile.style.height = (this.tileSize * multiplier) + 'px';
         });
@@ -705,21 +710,24 @@ class KartaJS extends EventEmitter {
 
     // Update position for all geo-based objects ao all layers
     updateObjectsPosition() {
-        if (this.updatingMarkers) {
+        if (this.updatingGeoObjects) {
             return;
         }
-        this.updatingMarkers = true;
+        this.updatingGeoObjects = true;
 
         requestAnimationFrame(() => {
+            this.visibleMarkers = [];
             this.markers.forEach((marker) => {
                 if (this.isObjectInBounds(marker)) {
-                    marker.showOnMap();
+                    this.visibleMarkers.push(marker);
+                    this.options.enableClusterManager || marker.showOnMap(); // Don't show marker on the map when cluster-manager is enabled.
                     this.calcObjectPosition(marker);
                 } else {
                     marker.hideOnMap();
                 }
             });
-            this.updatingMarkers = false;
+            this.options.enableClusterManager && this.clusterManager && this.clusterManager.processMarkers();
+            this.updatingGeoObjects = false;
         });
     }
 
@@ -940,6 +948,9 @@ class MapObject extends EventEmitter {
     }
 
     setTop(value) {
+        if (!this.element.style) {
+            return;
+        }
         return this.element.style.top = value + 'px';
     }
 
@@ -948,6 +959,9 @@ class MapObject extends EventEmitter {
     }
 
     setLeft(value) {
+        if (!this.element.style) {
+            return;
+        }
         return this.element.style.left = value + 'px';
     }
 
@@ -1061,5 +1075,142 @@ class Marker extends MapObject {
         if (this.element && this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
+    }
+}
+
+/**
+ * Simplest clustering
+ */
+class Cluster extends MapObject {
+    constructor(map, cellData) {
+        super(map);
+
+        this.element = document.createElement('div');
+        this.element.className = 'kjs-cluster';
+        this.element.innerHTML = `<div class="kjs-cluster-text">${cellData.count}</div>`;
+
+        this.element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.zoomOnClick(cellData);
+        });
+
+        this.map.overlayContainer.appendChild(this.element);
+    }
+
+    zoomOnClick(cellData) {
+        const centerLat = cellData.sumLat / cellData.count;
+        const centerLng = cellData.sumLng / cellData.count;
+
+        this.map.setCenter([centerLat, centerLng]);
+        this.map.setZoom(this.map.getZoom() + 2);
+    }
+}
+
+class ClusterManager {
+    constructor(map, options = {}) {
+        this.map = map;
+        this.options = {
+            maxZoom: options.maxZoom || 15,
+            gridSize: options.gridSize || 75, // Размер ячейки в пикселях на уровне зума
+            showIcons: true, //options.showIcons !== false,
+        };
+
+        this.clusters = new Map(); // Map<clusterKey, clusterData>
+        this.currentZoom = null;
+    }
+
+    processMarkers() {
+        return this.recalculateClusters(this.map.visibleMarkers, this.map.getZoom());
+    }
+
+    recalculateClusters(markers, zoom) {
+        this.clearClusters();
+        this.clusters.clear();
+
+        if (zoom >= this.options.maxZoom) {
+            this.clearClusters();
+            return this.showAllMarkers(markers);
+        }
+
+        // Создаём новую сетку для этого уровня зума
+        const grid = new Map();
+
+        markers.forEach(marker => {
+            // Переводим координаты маркера в мировые пиксели на этом уровне зума
+            const point = this.map.latLngToPoint(marker.getLat(), marker.getLng(), zoom);
+
+            // Определяем ячейку сетки
+            const cellX = Math.floor(point.x / this.options.gridSize);
+            const cellY = Math.floor(point.y / this.options.gridSize);
+            const cellKey = `${cellX}:${cellY}`;
+
+            if (!grid.has(cellKey)) {
+                grid.set(cellKey, {
+                    sumLat: marker.getLat(),
+                    sumLng: marker.getLng(),
+                    count: 1,
+                    markers: [marker],
+                    cellX,
+                    cellY,
+                    key: cellKey
+                });
+            } else {
+                const cell = grid.get(cellKey);
+                cell.sumLat += marker.getLat();
+                cell.sumLng += marker.getLng();
+                cell.count++;
+                cell.markers.push(marker);
+            }
+        });
+
+        // Создаём кластеры из непустых ячеек
+        for (const [cellKey, cellData] of grid.entries()) {
+            if (cellData.count === 0) {
+                continue;
+            }
+
+            if (cellData.count === 1) {
+                this.showAllMarkers(cellData.markers);
+                continue;
+            }
+
+            this.hideAllMarkers(cellData.markers)
+
+            const cluster =  new Cluster(this.map, cellData);
+            cluster.lat = cellData.sumLat / cellData.count;
+            cluster.lng = cellData.sumLng / cellData.count;
+            this.clusters.set(cellKey, cluster);
+        }
+
+        this.renderClusters();
+    }
+
+    /**
+     * Calc clusters position
+     */
+    renderClusters() {
+        for (const [key, cluster] of this.clusters.entries()) {
+            this.map.calcObjectPosition(cluster);
+        }
+    }
+
+    showAllMarkers(markers) {
+        markers.forEach(marker => marker.showOnMap());
+    }
+
+    hideAllMarkers(markers) {
+        markers.forEach(marker => marker.hideOnMap());
+    }
+
+    /**
+     * Remove all clusters from the map
+     */
+    clearClusters() {
+        for (const cluster of this.clusters.values()) {
+            if (cluster.element && cluster.element.parentNode) {
+                cluster.element.parentNode.removeChild(cluster.element);
+            }
+        }
+        this.clusters.clear();
     }
 }

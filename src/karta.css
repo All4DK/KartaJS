@@ -25,7 +25,7 @@
     left: 10px;
     pointer-events: auto;
     display: block;
-    background-color: rgba(256, 256, 256, 0.7);
+    background-color: rgba(255, 255, 255, 0.7);
     padding: 2px 5px;
     font-size: 10px;
     color: #333;
@@ -37,7 +37,7 @@
     right: 10px;
     pointer-events: auto;
     display: block;
-    background-color: rgba(256, 256, 256, 0.7);
+    background-color: rgba(255, 255, 255, 0.7);
     padding: 2px 5px;
     font-size: 10px;
     color: #333;
@@ -100,7 +100,9 @@
     padding: 10px;
     border-top: solid 3px;
     overflow: auto;
-    max-height: 400px;
+
+    max-width: 90vw;
+    max-height: 80vh;
 }
 
 /*  //MARKERS */
@@ -140,7 +142,7 @@
     pointer-events: none;
 }
 
-.kjs-overlay-container .cluster {
+.kjs-overlay-container .kjs-cluster {
     transform: translate(-50%, -50%);
     pointer-events: auto;
     position: absolute;
@@ -157,6 +159,11 @@
     border: 3px solid white;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     text-align: center;
-    vert-align: middle;
+    vertical-align: middle;
     cursor: grab;
+}
+
+.kjs-cluster:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+    transition: transform 0.2s;
 }
