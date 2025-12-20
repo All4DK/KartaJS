@@ -1090,14 +1090,14 @@ class Cluster extends MapObject {
         this.element.innerHTML = `<div class="kjs-cluster-text">${cellData.count}</div>`;
 
         this.element.addEventListener('click', (e) => {
-            if (!this.map.isDragging) {
+            if (!this.map.isDragging && !this.map.isZooming) {
                 e.stopPropagation();
                 this.zoomOnClick(cellData);
             }
         });
 
         this.element.addEventListener('touchend', (e) => {
-            if (!this.map.isDragging) {
+            if (!this.map.isDragging && !this.map.isZooming) {
                 e.stopPropagation();
                 this.zoomOnClick(cellData);
             }
