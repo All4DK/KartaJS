@@ -124,16 +124,12 @@ class KartaJS extends EventEmitter {
      * @enum {string}
      */
     static EVENTS = Object.freeze({
-        /** Карта инициализирована, API доступно */
-        READY: 'ready',
-        /** Первая порция тайлов загружена */
+        /** Загрузка тайлов загружена */
         LOAD: 'load',
         /** Клик по карте */
         CLICK: 'click',
         /** Двойной клик по карте */
         DBLCLICK: 'dblclick',
-        /** Начало перемещения карты */
-        MOVESTART: 'movestart',
         /** Карта перемещается */
         MOVE: 'move',
         /** Перемещение карты завершено */
@@ -144,14 +140,12 @@ class KartaJS extends EventEmitter {
         TOUCHEND: 'touchend',
         /** Перетаскивание нажатием на экран */
         TOUCHMOVE: 'touchmove',
+        /** Двойной тап по карте */
+        DBLTAP: 'dbltap',
         /** Начало изменения масштаба */
         ZOOMSTART: 'zoomstart',
-        /** Масштаб изменяется */
-        ZOOM: 'zoom',
         /** Изменение масштаба завершено */
         ZOOMEND: 'zoomend',
-        /** Вид карты полностью обновлён */
-        VIEWRESET: 'viewreset',
         /** Нажатие клавиши */
         KEYUP: 'keyup',
         /** Загружен тайл */
@@ -164,6 +158,8 @@ class KartaJS extends EventEmitter {
         MOUSEMOVE: 'mousemove',
         /** Отпущена нажатая кнопка мыши */
         MOUSEUP: 'mouseup',
+        /** Клик правой кнопкой */
+        CONTEXTMENU: 'contextmenu'
     });
 
     constructor(containerId, options = {}) {
@@ -194,6 +190,9 @@ class KartaJS extends EventEmitter {
         this.markers = new Map(); // Markers data
         this.overlayObjects = new Map(); // Overlay objects data
         this.queuedTiles = 0; // Counting tiles in queue or while loading
+        this.lastClickTime = 0; // For double-click / double-tap
+        this.clickCount = 1; // For double-click / double-tap
+        this.bounds = null;
         this.init();
         this.setCenter(this.options.center);
 
@@ -209,7 +208,6 @@ class KartaJS extends EventEmitter {
                 this.setCenter([autoCenter.lat/options.markers.length, autoCenter.lng/options.markers.length]);
             }
         }
-        this.emit(KartaJS.EVENTS.READY, {center: this.centerPoint});
     }
 
     init() {
@@ -349,6 +347,9 @@ class KartaJS extends EventEmitter {
                 tile.remove();
                 currentMap.delete(key);
             });
+            if (this.queuedTiles === 0) {
+                this.emit(KartaJS.EVENTS.LOAD, {center: this.centerPoint});
+            }
         }, 300);
     }
 
@@ -357,6 +358,7 @@ class KartaJS extends EventEmitter {
         this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
         document.addEventListener('mousemove', this.onMouseMove.bind(this));
         document.addEventListener('mouseup', this.onMouseUp.bind(this));
+        this.container.addEventListener('contextmenu', this.onContextMenu.bind(this));
 
         // Зум колесом мыши
         this.container.addEventListener('wheel', this.onWheel.bind(this), {passive: false});
@@ -416,19 +418,34 @@ class KartaJS extends EventEmitter {
         this.isDragging = true;
         this.container.style.cursor = 'grabbing';
 
-        this.emit(KartaJS.EVENTS.MOUSEDOWN, this.lastMousePos);
+        const now = Date.now();
+        this.clickCount = (now - this.lastClickTime > 300) ? 1 : (this.clickCount + 1);
+        this.lastClickTime = now;
+
+        const coords = this.pointToCoords(e.clientX, e.clientY);
+        this.emit(KartaJS.EVENTS.MOUSEDOWN, {
+            center: this.centerPoint,
+            latlng: [coords.lat, coords.lng],
+            pixel: {x: coords.x, y: coords.y},
+            originalEvent: e
+        });
     }
 
     onMouseMove(e) {
         const coords = this.pointToCoords(e.clientX, e.clientY);
-        this.updateLatlngMonitor(coords);
         this.setMousePos(coords);
+        this.updateLatlngMonitor(coords);
 
         if (this.isDragging) {
             this.panBy(coords.deltaX, coords.deltaY);
         }
 
-        this.emit(KartaJS.EVENTS.MOUSEMOVE, this.lastMousePos);
+        this.emit(KartaJS.EVENTS.MOUSEMOVE, {
+            center: this.centerPoint,
+            latlng: [coords.lat, coords.lng],
+            pixel: {x: coords.x, y: coords.y},
+            originalEvent: e
+        });
     }
 
     onMouseUp(e) {
@@ -438,8 +455,45 @@ class KartaJS extends EventEmitter {
         }
         this.container.style.cursor = 'default';
 
-        this.emit(KartaJS.EVENTS.MOUSEUP, this.lastMousePos);
+        const coords = this.pointToCoords(e.clientX, e.clientY);
+
+        if (this.clickCount === 2) {
+            this.clickCount = 0;
+            this.zoomIn(true);
+            this.emit(KartaJS.EVENTS.DBLCLICK, {
+                center: this.centerPoint,
+                latlng: [coords.lat, coords.lng],
+                pixel: {x: coords.x, y: coords.y},
+                originalEvent: e
+            });
+            return;
+        }
+
+        this.emit(KartaJS.EVENTS.MOUSEUP, {
+            center: this.centerPoint,
+            latlng: [coords.lat, coords.lng],
+            pixel: {x: coords.x, y: coords.y},
+            originalEvent: e
+        });
+        this.emit(KartaJS.EVENTS.CLICK, {
+            center: this.centerPoint,
+            latlng: [coords.lat, coords.lng],
+            pixel: {x: coords.x, y: coords.y},
+            originalEvent: e
+        });
         this.loadTiles();
+    }
+
+    onContextMenu(e) {
+        e.preventDefault(); // Отменяем стандартное меню браузера
+
+        const coords = this.pointToCoords(e.clientX, e.clientY);
+        this.emit(KartaJS.EVENTS.CONTEXTMENU, {
+            center: this.centerPoint,
+            latlng: [coords.lat, coords.lng],
+            pixel: {x: coords.x, y: coords.y},
+            originalEvent: e
+        });
     }
 
     onWheel(e) {
@@ -454,6 +508,10 @@ class KartaJS extends EventEmitter {
         let coords = this.pointToCoords(e.touches[0].clientX, e.touches[0].clientY);
         if (e.touches.length === 1) {
             this.isDragging = true;
+
+            const now = Date.now();
+            this.clickCount = (now - this.lastClickTime > 300) ? 1 : (this.clickCount + 1);
+            this.lastClickTime = now;
         }
 
         if (e.touches.length === 2) {
@@ -468,14 +526,27 @@ class KartaJS extends EventEmitter {
 
         this.setMousePos(coords);
         this.updateLatlngMonitor(coords);
-        this.emit(KartaJS.EVENTS.TOUCHSTART, {isDragging: this.isDragging, isZooming: this.isZooming});
+
+        this.emit(KartaJS.EVENTS.TOUCHSTART, {
+            center: this.centerPoint,
+            isDragging: this.isDragging,
+            isZooming: this.isZooming,
+            latlng: [coords.lat, coords.lng],
+            pixel: {x: coords.x, y: coords.y},
+            originalEvent: e
+        });
     }
 
     onTouchMove(e) {
         e.preventDefault();
 
+        let coords = this.pointToCoords(e.touches[0].clientX, e.touches[0].clientY);
+        if (e.touches.length === 2) {
+            coords = this.pointToCoords((e.touches[0].clientX + e.touches[1].clientX) / 2,
+                (e.touches[0].clientY + e.touches[1].clientY) / 2);
+        }
+
         if (this.isDragging && e.touches.length === 1) {
-            const coords = this.pointToCoords(e.touches[0].clientX, e.touches[0].clientY);
             this.setMousePos(coords);
             this.panBy(coords.deltaX, coords.deltaY);
         }
@@ -493,7 +564,12 @@ class KartaJS extends EventEmitter {
             }
         }
 
-        this.emit(KartaJS.EVENTS.TOUCHMOVE, {center: this.centerPoint});
+        this.emit(KartaJS.EVENTS.TOUCHMOVE, {
+            center: this.centerPoint,
+            latlng: [coords.lat, coords.lng],
+            pixel: {x: coords.x, y: coords.y},
+            originalEvent: e
+        });
     }
 
     onTouchEnd() {
@@ -501,6 +577,13 @@ class KartaJS extends EventEmitter {
             this.emit(KartaJS.EVENTS.MOVEEND, {center: this.centerPoint});
             this.emit(KartaJS.EVENTS.TOUCHEND);
             this.isDragging = false;
+        }
+
+        if (this.clickCount === 2) {
+            this.clickCount = 0;
+            this.zoomIn(true);
+            this.emit(KartaJS.EVENTS.DBLTAP, this.lastMousePos);
+            return;
         }
 
         this.isZooming = false;
@@ -544,6 +627,7 @@ class KartaJS extends EventEmitter {
         // Обновляем центр карты и маркеры
         this.updateCenterFromOffset();
         this.updateObjectsPosition();
+        this.bounds = null;
 
         this.emit(KartaJS.EVENTS.MOVE, {center: this.centerPoint});
     }
@@ -579,6 +663,7 @@ class KartaJS extends EventEmitter {
             this.setCenter(this.getCenter());
         }
 
+        this.bounds = null;
         this.emit(KartaJS.EVENTS.ZOOMSTART, {center: this.centerPoint});
 
         // Updating geo-based objects on all layers
@@ -626,11 +711,10 @@ class KartaJS extends EventEmitter {
         this.updatingMarkers = true;
 
         requestAnimationFrame(() => {
-            const bounds = this.getBounds();
             this.markers.forEach((marker) => {
-                if (this.isObjectInBounds(marker, bounds)) {
-                    this.calcObjectPosition(marker);
+                if (this.isObjectInBounds(marker)) {
                     marker.showOnMap();
+                    this.calcObjectPosition(marker);
                 } else {
                     marker.hideOnMap();
                 }
@@ -656,11 +740,16 @@ class KartaJS extends EventEmitter {
         object.setTop(offsetY);
     }
 
-    isObjectInBounds(object, bounds) {
-        return object.lat >= bounds.south &&
-            object.lat <= bounds.north &&
-            object.lng >= bounds.west &&
-            object.lng <= bounds.east;
+    isLatlngInBounds(lat, lng) {
+        const bounds = this.getBounds();
+        return lat >= bounds.south &&
+            lat <= bounds.north &&
+            lng >= bounds.west &&
+            lng <= bounds.east;
+    }
+
+    isObjectInBounds(object) {
+        return this.isLatlngInBounds(object.lat, object.lng)
     }
 
     setCenter(latlng = [0, 0]) {
@@ -782,6 +871,10 @@ class KartaJS extends EventEmitter {
      * @returns {Object} Объект с координатами углов {north, south, east, west}
      */
     getBounds() {
+        if (this.bounds) {
+            return this.bounds;
+        }
+
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
 
@@ -791,12 +884,14 @@ class KartaJS extends EventEmitter {
         // Right-bottom
         const southEast = this.pointToLatLng(containerWidth - this.currentOffset['x'], containerHeight - this.currentOffset['y']);
 
-        return {
+        this.bounds = {
             north: Math.min(northWest.lat, 90),
             south: Math.max(southEast.lat, -90),
             east: Math.min(southEast.lng, 180),
             west: Math.max(northWest.lng, -180),
         };
+
+        return this.bounds;
     }
 
     // MARKERS
@@ -805,6 +900,10 @@ class KartaJS extends EventEmitter {
         this.markers.set(marker.getId(), marker);
 
         return marker.getId();
+    }
+
+    getMarker(id) {
+        return this.markers.get(id);
     }
 
     removeMarker(id) {
@@ -857,18 +956,30 @@ class MapObject extends EventEmitter {
     }
 
     hideOnMap() {
+        if (!this.element.style) {
+            return;
+        }
         this.element.style.display = 'none';
     }
 
     showOnMap() {
+        if (!this.element) {
+            return;
+        }
         this.element.style.display = 'block';
+    }
+
+    generateId(prefix) {
+        const timestamp = Date.now().toString(36).slice(4);
+        const random = Math.random().toString(36).substring(2,6);
+        return `${prefix}_${timestamp}_${random}`;
     }
 }
 
 class Marker extends MapObject {
     constructor(map, options) {
         super(map);
-        this.id = options.id || this.generateId();
+        this.id = options.id || this.generateId('id');
         this.lat = options.lat;
         this.lng = options.lng;
         this.title = options.title || '';
@@ -877,6 +988,10 @@ class Marker extends MapObject {
         this.ico = options.ico || null;
         this.cssClass = options.cssClass || 'simple';
         this.cachePosition = null;
+
+        if (!this.map.isLatlngInBounds(this.lat, this.lng)) {
+            return;
+        }
 
         this.createElement();
         this.updatePosition();
@@ -919,6 +1034,15 @@ class Marker extends MapObject {
         return this.id;
     }
 
+    showOnMap() {
+        if (!this.element.style) {
+            this.createElement();
+            this.updatePosition();
+        }
+
+        this.element.style.display = 'block';
+    }
+
     showPopup() {
         if (!this.popup) {
             return;
@@ -937,11 +1061,5 @@ class Marker extends MapObject {
         if (this.element && this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
-    }
-
-    generateId() {
-        const timestamp = Date.now().toString(36).slice(4);
-        const random = Math.random().toString(36).substring(2,6);
-        return `id_${timestamp}_${random}`;
     }
 }
