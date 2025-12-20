@@ -1094,6 +1094,11 @@ class Cluster extends MapObject {
             this.zoomOnClick(cellData);
         });
 
+        this.element.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            this.zoomOnClick(cellData);
+        });
+
         this.map.overlayContainer.appendChild(this.element);
     }
 
