@@ -369,7 +369,9 @@ class KartaJS extends EventEmitter {
 
         // Кнопки зума
         this.zoomInBtn.addEventListener('click', () => this.zoomIn());
+        this.zoomInBtn.addEventListener('touchend', () => this.zoomIn());
         this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
+        this.zoomOutBtn.addEventListener('touchend', () => this.zoomOut());
 
         // Касания для мобильных устройств
         this.container.addEventListener('touchstart', this.onTouchStart.bind(this));
@@ -511,8 +513,6 @@ class KartaJS extends EventEmitter {
 
         let coords = this.pointToCoords(e.touches[0].clientX, e.touches[0].clientY);
         if (e.touches.length === 1) {
-            this.isDragging = true;
-
             const now = Date.now();
             this.clickCount = (now - this.lastClickTime > 300) ? 1 : (this.clickCount + 1);
             this.lastClickTime = now;
@@ -550,7 +550,8 @@ class KartaJS extends EventEmitter {
                 (e.touches[0].clientY + e.touches[1].clientY) / 2);
         }
 
-        if (this.isDragging && e.touches.length === 1) {
+        if (e.touches.length === 1) {
+            this.isDragging = true;
             this.setMousePos(coords);
             this.panBy(coords.deltaX, coords.deltaY);
         }
@@ -561,10 +562,12 @@ class KartaJS extends EventEmitter {
             if (zoomDelta < 0.8) {
                 this.zoomIn(true);
                 this.startTouchDistance = this.lastTouchDistance
-            }
-            if (zoomDelta > 1.2) {
+            } else if (zoomDelta > 1.2) {
                 this.zoomOut(true);
                 this.startTouchDistance = this.lastTouchDistance
+            } else {
+                this.setMousePos(coords);
+                this.panBy(coords.deltaX, coords.deltaY);
             }
         }
 
@@ -1080,6 +1083,7 @@ class Marker extends MapObject {
 
 /**
  * Simplest clustering
+ * TODO: переделать на события, чтоб карта магла ничего не знать кро кластеризацию, а метки кластеров добавлять через addObject у карты (тоже туду)
  */
 class Cluster extends MapObject {
     constructor(map, cellData) {
@@ -1121,11 +1125,9 @@ class ClusterManager {
         this.options = {
             maxZoom: options.maxZoom || 15,
             gridSize: options.gridSize || 75, // Размер ячейки в пикселях на уровне зума
-            showIcons: true, //options.showIcons !== false,
         };
 
         this.clusters = new Map(); // Map<clusterKey, clusterData>
-        this.currentZoom = null;
     }
 
     processMarkers() {
@@ -1203,6 +1205,7 @@ class ClusterManager {
         }
     }
 
+    // TODO перенести это в карту
     showAllMarkers(markers) {
         markers.forEach(marker => marker.showOnMap());
     }
