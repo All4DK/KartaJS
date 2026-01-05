@@ -357,6 +357,7 @@ class KartaJS extends EventEmitter {
         }, 300);
     }
 
+    // ********* EVENTS ********* //
     setupEvents() {
         // Перетаскивание карты
         this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
@@ -597,6 +598,7 @@ class KartaJS extends EventEmitter {
 
         this.loadTiles();
     }
+    // ********* /EVENTS ********* //
 
     updateLatlngMonitor(coords) {
         if (!this.options.showLatlngMonitor) {
@@ -620,7 +622,20 @@ class KartaJS extends EventEmitter {
         this.currentOffset.x += deltaX;
         this.currentOffset.y += deltaY;
 
-        // Обновляем позиции всех тайлов
+        this.updateExistingTilesPosition()
+
+        // Обновляем центр карты и маркеры
+        this.updateCenterFromOffset();
+        this.updateObjectsPosition();
+        this.bounds = null;
+
+        this.emit(KartaJS.EVENTS.MOVE, {center: this.centerPoint});
+    }
+
+    /**
+     * Update position for all tiles
+     */
+    updateExistingTilesPosition() {
         this.tiles.forEach((tile, key) => {
             const [z, x, y] = key.split('/').map(Number);
             const zoomDelta = this.getZoom() - z;
@@ -632,13 +647,6 @@ class KartaJS extends EventEmitter {
             tile.style.width = (this.tileSize * multiplier) + 'px';
             tile.style.height = (this.tileSize * multiplier) + 'px';
         });
-
-        // Обновляем центр карты и маркеры
-        this.updateCenterFromOffset();
-        this.updateObjectsPosition();
-        this.bounds = null;
-
-        this.emit(KartaJS.EVENTS.MOVE, {center: this.centerPoint});
     }
 
     /**
@@ -679,17 +687,7 @@ class KartaJS extends EventEmitter {
         this.updateObjectsPosition();
 
         // Resize existing tiles before loading new ones
-        this.tiles.forEach((tile, key) => {
-            const [z, x, y] = key.split('/').map(Number);
-            const zoomDelta = this.getZoom() - z;
-            const multiplier = Math.pow(2, zoomDelta);
-            const offsetX = x * this.tileSize * multiplier + this.currentOffset.x;
-            const offsetY = y * this.tileSize * multiplier + this.currentOffset.y;
-            tile.style.left = offsetX + 'px';
-            tile.style.top = offsetY + 'px';
-            tile.style.width = (this.tileSize * multiplier) + 'px';
-            tile.style.height = (this.tileSize * multiplier) + 'px';
-        });
+        this.updateExistingTilesPosition();
 
         // "setTimeout" is used to skip unnecessary levels when zooming quickly
         clearTimeout(this.loadTimer);
