@@ -227,23 +227,12 @@ class KartaJS extends EventEmitter {
         this.container.style.position = 'relative';
         this.container.style.overflow = 'hidden';
         this.container.style.cursor = 'default';
-        this.container.innerHTML = `
-            <div class="kjs-tiles-container"></div>
-            <div class="kjs-markers-container"></div>
-            <div class="kjs-overlay-container"></div>
-            <div class="kjs-copyrighths">` + this.options.tileLayer.attribution + ` | <a href="https://github.com/All4DK/KartaJS" target="_blank">KartaJS</a></div>`;
 
-        if (this.options.interactive) {
-            this.container.innerHTML += '<div class="kjs-controls"><button class="kjs-zoom-in">▲</button><button class="kjs-zoom-out">▼</button></div>';
-        }
-
-        if (this.options.showLatlngMonitor) {
-            this.container.innerHTML += '<div class="kjs-current-latlng">N:0.00 E:0.00</div>';
-        }
-        this.container.innerHTML += '' +
-            '<div class="kjs-popup-container">' +
-            '   <div class="popup"></div>' +
-            '</div>';
+        this.container.innerHTML = '<div class="kjs-tiles-container"></div><div class="kjs-markers-container"></div><div class="kjs-overlay-container"></div>';
+        this.container.innerHTML += '<div class="kjs-copyrighths">' + this.options.tileLayer.attribution + ' | <a href="https://github.com/All4DK/KartaJS" target="_blank">KartaJS</a></div>';
+        this.container.innerHTML += '<div class="kjs-popup-container"><div class="popup"></div></div>';
+        this.container.innerHTML += this.options.interactive ? '<div class="kjs-controls"><button class="kjs-zoom-in">▲</button><button class="kjs-zoom-out">▼</button></div>' : '';
+        this.container.innerHTML += this.options.showLatlngMonitor ? '<div class="kjs-current-latlng">N:0.00 E:0.00</div>' : '';
 
         this.tilesContainer = this.container.querySelector('.kjs-tiles-container');
         this.markersContainer = this.container.querySelector('.kjs-markers-container');
@@ -255,6 +244,7 @@ class KartaJS extends EventEmitter {
         this.zoomOutBtn = this.container.querySelector('.kjs-zoom-out');
     }
 
+    // ********* TILES ********* //
     /**
      * Загружает новые тайлы, которые попадают в область видимости
      */
@@ -278,7 +268,7 @@ class KartaJS extends EventEmitter {
         }
 
         this.updateObjectsPosition();
-        this.panBy();
+        this.updateExistingTilesPosition();
         this.clearOldTiles();
     }
 
@@ -357,6 +347,43 @@ class KartaJS extends EventEmitter {
         }, 300);
     }
 
+    /**
+     * Двигаем карту на некоторую дельту - в пикселях.
+     * @param deltaX int pixels
+     * @param deltaY int pixels
+     */
+    panBy(deltaX = 0, deltaY = 0) {
+        this.currentOffset.x += deltaX;
+        this.currentOffset.y += deltaY;
+
+        this.updateExistingTilesPosition()
+
+        // Обновляем центр карты и маркеры
+        this.updateCenterFromOffset();
+        this.updateObjectsPosition();
+        this.bounds = null;
+
+        this.emit(KartaJS.EVENTS.MOVE, {center: this.centerPoint});
+    }
+
+    /**
+     * Update position for all tiles
+     */
+    updateExistingTilesPosition() {
+        this.tiles.forEach((tile, key) => {
+            const [z, x, y] = key.split('/').map(Number);
+            const zoomDelta = this.getZoom() - z;
+            const multiplier = Math.pow(2, zoomDelta);
+            const offsetX = x * this.tileSize * multiplier + this.currentOffset.x;
+            const offsetY = y * this.tileSize * multiplier + this.currentOffset.y;
+            tile.style.left = offsetX + 'px';
+            tile.style.top = offsetY + 'px';
+            tile.style.width = (this.tileSize * multiplier) + 'px';
+            tile.style.height = (this.tileSize * multiplier) + 'px';
+        });
+    }
+    // ********* /TILES ********* //
+
     // ********* EVENTS ********* //
     setupEvents() {
         // Перетаскивание карты
@@ -396,18 +423,6 @@ class KartaJS extends EventEmitter {
             switch (e.key) {
                 case 'Escape':
                     this.hidePopup();
-                    break;
-                case 'ArrowRight':
-                    this.panBy(-10, 0);
-                    break;
-                case 'ArrowLeft':
-                    this.panBy(10, 0);
-                    break;
-                case 'ArrowUp':
-                    this.panBy(0, 10);
-                    break;
-                case 'ArrowDown':
-                    this.panBy(0, -10);
                     break;
                 case '+':
                     this.zoomIn();
@@ -611,42 +626,6 @@ class KartaJS extends EventEmitter {
             + ' '
             + ((this.lastMousePos.lng > 0) ? 'E:' : 'W:')
             + Math.abs(coords.lng.toFixed(4));
-    }
-
-    /**
-     * Двигаем карту на некоторую дельту - в пикселях.
-     * @param deltaX int pixels
-     * @param deltaY int pixels
-     */
-    panBy(deltaX = 0, deltaY = 0) {
-        this.currentOffset.x += deltaX;
-        this.currentOffset.y += deltaY;
-
-        this.updateExistingTilesPosition()
-
-        // Обновляем центр карты и маркеры
-        this.updateCenterFromOffset();
-        this.updateObjectsPosition();
-        this.bounds = null;
-
-        this.emit(KartaJS.EVENTS.MOVE, {center: this.centerPoint});
-    }
-
-    /**
-     * Update position for all tiles
-     */
-    updateExistingTilesPosition() {
-        this.tiles.forEach((tile, key) => {
-            const [z, x, y] = key.split('/').map(Number);
-            const zoomDelta = this.getZoom() - z;
-            const multiplier = Math.pow(2, zoomDelta);
-            const offsetX = x * this.tileSize * multiplier + this.currentOffset.x;
-            const offsetY = y * this.tileSize * multiplier + this.currentOffset.y;
-            tile.style.left = offsetX + 'px';
-            tile.style.top = offsetY + 'px';
-            tile.style.width = (this.tileSize * multiplier) + 'px';
-            tile.style.height = (this.tileSize * multiplier) + 'px';
-        });
     }
 
     /**
