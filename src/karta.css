@@ -148,15 +148,15 @@
     position: absolute;
     width: 40px;
     height: 40px;
-    background-color: darkcyan;
+    background-color: #FFF;
     border-radius: 50%;
     display: grid;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #333;
     font-weight: bold;
     font-size: 14px;
-    border: 3px solid white;
+    border: 3px solid #38F;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     text-align: center;
     vertical-align: middle;

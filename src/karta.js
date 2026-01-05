@@ -1091,7 +1091,8 @@ class Cluster extends MapObject {
 
         this.element = document.createElement('div');
         this.element.className = 'kjs-cluster';
-        this.element.innerHTML = `<div class="kjs-cluster-text">${cellData.count}</div>`;
+        const count = (cellData.count > 10000) ? Math.floor(cellData.count / 1000) + 'k' : cellData.count;
+        this.element.innerHTML = `<div class="kjs-cluster-text">${count}</div>`;
 
         this.element.addEventListener('click', (e) => {
             if (!this.map.isDragging && !this.map.isZooming) {
