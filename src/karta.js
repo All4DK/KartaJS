@@ -200,7 +200,7 @@ class KartaJS extends EventEmitter {
         this.clusterManager = this.options.enableClusterManager ? new ClusterManager(this, this.options.clusterManager) : null;
         this.visibleMarkers = [];
 
-        // Обработка массива маркеров, пришедших на инициализацию
+        // Processing markers array received during initialization
         if (options.markers && Array.isArray(options.markers)) {
             let autoCenter = {lat: 0, lng: 0};
             options.markers.forEach(markerOpts => {
@@ -246,7 +246,7 @@ class KartaJS extends EventEmitter {
 
     // ********* TILES ********* //
     /**
-     * Загружает новые тайлы, которые попадают в область видимости
+     * Loads new tiles that fall into the visible area
      */
     loadTiles() {
         // Calc visible area
@@ -348,7 +348,7 @@ class KartaJS extends EventEmitter {
     }
 
     /**
-     * Двигаем карту на некоторую дельту - в пикселях.
+     * Move the map by a certain delta - in pixels.
      * @param deltaX int pixels
      * @param deltaY int pixels
      */
@@ -358,7 +358,7 @@ class KartaJS extends EventEmitter {
 
         this.updateExistingTilesPosition()
 
-        // Обновляем центр карты и маркеры
+        // Update map center and markers
         this.updateCenterFromOffset();
         this.updateObjectsPosition();
         this.bounds = null;
@@ -386,27 +386,27 @@ class KartaJS extends EventEmitter {
 
     // ********* EVENTS ********* //
     setupEvents() {
-        // Перетаскивание карты
+        // Map dragging
         this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
         document.addEventListener('mousemove', this.onMouseMove.bind(this));
         document.addEventListener('mouseup', this.onMouseUp.bind(this));
         this.container.addEventListener('contextmenu', this.onContextMenu.bind(this));
 
-        // Зум колесом мыши
+        // Zoom with mouse wheel
         this.container.addEventListener('wheel', this.onWheel.bind(this), {passive: false});
 
-        // Кнопки зума
+        // Zoom buttons
         this.zoomInBtn.addEventListener('click', () => this.zoomIn());
         this.zoomInBtn.addEventListener('touchend', () => this.zoomIn());
         this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
         this.zoomOutBtn.addEventListener('touchend', () => this.zoomOut());
 
-        // Касания для мобильных устройств
+        // Touch interactions (for mobile devices)
         this.container.addEventListener('touchstart', this.onTouchStart.bind(this));
         this.container.addEventListener('touchmove', this.onTouchMove.bind(this));
         this.container.addEventListener('touchend', this.onTouchEnd.bind(this));
 
-        // Работа с попапом
+        // Popup handling
         this.popupContainer.addEventListener('click', (e) => {
             if (e.target === this.popupContainer) {
                 this.hidePopup();
@@ -507,7 +507,7 @@ class KartaJS extends EventEmitter {
     }
 
     onContextMenu(e) {
-        e.preventDefault(); // Отменяем стандартное меню браузера
+        e.preventDefault(); // Prevent default browser context menu
 
         const coords = this.pointToCoords(e.clientX, e.clientY);
         this.emit(KartaJS.EVENTS.CONTEXTMENU, {
@@ -629,7 +629,7 @@ class KartaJS extends EventEmitter {
     }
 
     /**
-     * Обновляет текущие координаты центра центра карты
+     * Updates current map center coordinates
      */
     updateCenterFromOffset() {
         const containerWidth = this.container.offsetWidth;
@@ -764,7 +764,7 @@ class KartaJS extends EventEmitter {
         return rad * (180 / Math.PI);
     }
 
-    // Правильная проекция Меркатора
+    // Correct Mercator projection
     latLngToPoint(lat, lng, zoom = -1) {
         if (zoom === -1) {
             zoom = this.getZoom();
@@ -772,11 +772,7 @@ class KartaJS extends EventEmitter {
 
         const scale = 256 * Math.pow(2, zoom);
         const latRad = this.degreesToRadians(lat);
-
-        // Долгота - простое линейное преобразование
         const x = (lng + 180) * (scale / 360);
-
-        // Широта - проекция Меркатора (сжимает у полюсов)
         const mercator = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
         const y = (scale / 2) - (scale * mercator / (2 * Math.PI));
 
@@ -789,11 +785,7 @@ class KartaJS extends EventEmitter {
         }
 
         const scale = 256 * Math.pow(2, zoom);
-
-        // Обратное преобразование долготы
         const lng = (x / scale) * 360 - 180;
-
-        // Обратное преобразование широты
         const mercator = (scale / 2 - y) * (2 * Math.PI) / scale;
         const latRad = 2 * Math.atan(Math.exp(mercator)) - Math.PI / 2;
         const lat = this.radiansToDegrees(latRad);
@@ -802,7 +794,7 @@ class KartaJS extends EventEmitter {
     }
 
     /**
-     * считает координаты (x,y,lat,lng,deltaX,deltaY) для точки на экране (учитыавя смещение карты)
+     * Calculates coordinates (x,y,lat,lng,deltaX,deltaY) for a point on screen
      * @param x
      * @param y
      */
@@ -828,7 +820,7 @@ class KartaJS extends EventEmitter {
     }
 
     /**
-     * Сохраняет переданные координаты (x,y,lat,lng) как координаты мыши
+     * Stores provided coordinates (x,y,lat,lng) as mouse coordinates
      * @param coords
      */
     setMousePos(coords) {
@@ -855,8 +847,8 @@ class KartaJS extends EventEmitter {
     }
 
     /**
-     * Возвращает bounding box видимой области карты
-     * @returns {Object} Объект с координатами углов {north, south, east, west}
+     * Returns bounding box of the visible map area
+     * @returns {Object} Object with corner coordinates {north, south, east, west}
      */
     getBounds() {
         if (this.bounds) {
@@ -1060,7 +1052,7 @@ class Marker extends MapObject {
 
 /**
  * Simplest clustering
- * TODO: переделать на события, чтоб карта магла ничего не знать кро кластеризацию, а метки кластеров добавлять через addObject у карты (тоже туду)
+ * TODO: refactor to use events, so map doesn't know about clustering, and cluster markers can be added via map's addObject method
  */
 class Cluster extends MapObject {
     constructor(map, cellData) {
@@ -1102,7 +1094,7 @@ class ClusterManager {
         this.map = map;
         this.options = {
             maxZoom: options.maxZoom || 15,
-            gridSize: options.gridSize || 75, // Размер ячейки в пикселях на уровне зума
+            gridSize: options.gridSize || 75, // Cell size in pixels at zoom level
         };
 
         this.clusters = new Map(); // Map<clusterKey, clusterData>
@@ -1121,14 +1113,13 @@ class ClusterManager {
             return this.showAllMarkers(markers);
         }
 
-        // Создаём новую сетку для этого уровня зума
+        // Create new grid for this zoom level
         const grid = new Map();
 
         markers.forEach(marker => {
-            // Переводим координаты маркера в мировые пиксели на этом уровне зума
             const point = this.map.latLngToPoint(marker.getLat(), marker.getLng(), zoom);
 
-            // Определяем ячейку сетки
+            // Determine grid cell
             const cellX = Math.floor(point.x / this.options.gridSize);
             const cellY = Math.floor(point.y / this.options.gridSize);
             const cellKey = `${cellX}:${cellY}`;
@@ -1152,7 +1143,7 @@ class ClusterManager {
             }
         });
 
-        // Создаём кластеры из непустых ячеек
+        // Create clusters from non-empty cells
         for (const [cellKey, cellData] of grid.entries()) {
             if (cellData.count === 0) {
                 continue;
